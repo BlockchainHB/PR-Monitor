@@ -39,7 +39,7 @@ struct ContentView: View {
             Button {
                 appState.refreshNow()
             } label: {
-                Image(systemName: "arrow.clockwise")
+                Label("Refresh", systemImage: "arrow.clockwise")
             }
             .buttonStyle(.borderless)
             .help("Refresh now")
@@ -182,18 +182,16 @@ struct ContentView: View {
     private var settingsButton: some View {
         if #available(macOS 14.0, *) {
             SettingsLink {
-                Image(systemName: "gear")
+                Label("Settings", systemImage: "gear")
             }
             .buttonStyle(.borderless)
-            .help("Settings")
         } else {
             Button {
                 NSApp.sendAction(Selector("showSettingsWindow:"), to: nil, from: nil)
             } label: {
-                Image(systemName: "gear")
+                Label("Settings", systemImage: "gear")
             }
             .buttonStyle(.borderless)
-            .help("Settings")
         }
     }
 }
