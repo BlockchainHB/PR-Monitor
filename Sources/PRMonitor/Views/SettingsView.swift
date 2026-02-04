@@ -19,16 +19,24 @@ struct SettingsView: View {
     var body: some View {
         TabView {
             reposTab
-                .tabItem { Text("Repos") }
+                .tabItem {
+                    Label("Repos", systemImage: "folder.badge.gearshape")
+                }
             agentsTab
-                .tabItem { Text("Agents") }
+                .tabItem {
+                    Label("Agents", systemImage: "cpu")
+                }
             authTab
-                .tabItem { Text("Auth") }
+                .tabItem {
+                    Label("Auth", systemImage: "key.horizontal")
+                }
             notificationsTab
-                .tabItem { Text("Notifications") }
+                .tabItem {
+                    Label("Notifications", systemImage: "bell")
+                }
         }
-        .padding(16)
-        .frame(width: 640, height: 420)
+        .padding(24)
+        .frame(width: 700, height: 500)
         .onAppear {
             activateForSettings()
         }
