@@ -33,6 +33,16 @@ With multiple agent reviewers running in parallel, it’s easy to get stuck cont
 5. Configure agent mappings (check name pattern + comment author login).
 6. Authenticate with GitHub via device flow.
 
+## Install (Recommended)
+
+The easiest way to install is from GitHub Releases (standard for menu bar apps):
+
+1. Download the latest `PRMonitor.app.zip` from [Releases](https://github.com/BlockchainHB/checks/releases).
+2. Unzip and move `PRMonitor.app` to `/Applications`.
+3. Launch it from Spotlight or `/Applications`.
+
+If macOS Gatekeeper blocks the first launch, right-click the app → **Open** → **Open**.
+
 ## GitHub OAuth Setup (Device Flow)
 
 1. Create a GitHub OAuth App in your GitHub settings.
