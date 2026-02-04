@@ -3,6 +3,8 @@ import Foundation
 enum GitHubClientError: Error, LocalizedError {
     case missingToken
     case invalidResponse
+    case rateLimited(reset: Date?)
+    case httpError(status: Int)
 
     var errorDescription: String? {
         switch self {
@@ -10,6 +12,16 @@ enum GitHubClientError: Error, LocalizedError {
             return "Missing GitHub token."
         case .invalidResponse:
             return "Unexpected GitHub response."
+        case .rateLimited(let reset):
+            if let reset {
+                let formatter = RelativeDateTimeFormatter()
+                formatter.unitsStyle = .full
+                let relative = formatter.localizedString(for: reset, relativeTo: Date())
+                return "GitHub API rate limit exceeded. Try again \(relative)."
+            }
+            return "GitHub API rate limit exceeded. Try again later."
+        case .httpError(let status):
+            return "GitHub API returned HTTP \(status)."
         }
     }
 }
@@ -27,28 +39,99 @@ final class GitHubClient {
     }
 
     func fetchOpenPullRequests(repo: RepoConfig) async throws -> [PullRequestDTO] {
-        let url = URL(string: "https://api.github.com/repos/\(repo.owner)/\(repo.name)/pulls?state=open&per_page=50")!
-        var request = try makeRequest(url: url)
-        let (data, response) = try await session.data(for: request)
-        try validate(response: response)
-        return try decoder.decode([PullRequestDTO].self, from: data)
+        var page = 1
+        var pulls: [PullRequestDTO] = []
+        while true {
+            let url = URL(string: "https://api.github.com/repos/\(repo.owner)/\(repo.name)/pulls?state=open&per_page=100&page=\(page)")!
+            let request = try makeRequest(url: url)
+            let (data, response) = try await session.data(for: request)
+            try validate(response: response)
+            let batch = try decoder.decode([PullRequestDTO].self, from: data)
+            pulls.append(contentsOf: batch)
+            if batch.count < 100 { break }
+            page += 1
+        }
+        return pulls
     }
 
     func fetchCheckRuns(owner: String, repo: String, sha: String) async throws -> [CheckRunDTO] {
-        let url = URL(string: "https://api.github.com/repos/\(owner)/\(repo)/commits/\(sha)/check-runs?per_page=100")!
-        let request = try makeRequest(url: url)
-        let (data, response) = try await session.data(for: request)
-        try validate(response: response)
-        let payload = try decoder.decode(CheckRunsResponse.self, from: data)
-        return payload.checkRuns
+        var page = 1
+        var runs: [CheckRunDTO] = []
+        var totalCount: Int?
+        while true {
+            let url = URL(string: "https://api.github.com/repos/\(owner)/\(repo)/commits/\(sha)/check-runs?per_page=100&page=\(page)&filter=latest")!
+            let request = try makeRequest(url: url)
+            let (data, response) = try await session.data(for: request)
+            try validate(response: response)
+            let payload = try decoder.decode(CheckRunsResponse.self, from: data)
+            totalCount = payload.totalCount
+            runs.append(contentsOf: payload.checkRuns)
+            if payload.checkRuns.count < 100 { break }
+            if let totalCount, runs.count >= totalCount { break }
+            page += 1
+        }
+        return runs
     }
 
-    func fetchReviewComments(owner: String, repo: String, prNumber: Int) async throws -> [ReviewCommentDTO] {
-        let url = URL(string: "https://api.github.com/repos/\(owner)/\(repo)/pulls/\(prNumber)/comments?per_page=100")!
-        let request = try makeRequest(url: url)
-        let (data, response) = try await session.data(for: request)
-        try validate(response: response)
-        return try decoder.decode([ReviewCommentDTO].self, from: data)
+    func fetchReviewComments(owner: String, repo: String, prNumber: Int) async throws -> [PRComment] {
+        var page = 1
+        var comments: [PRComment] = []
+        while true {
+            let url = URL(string: "https://api.github.com/repos/\(owner)/\(repo)/pulls/\(prNumber)/comments?per_page=100&page=\(page)")!
+            let request = try makeRequest(url: url)
+            let (data, response) = try await session.data(for: request)
+            try validate(response: response)
+            let batch = try decoder.decode([ReviewCommentDTO].self, from: data)
+            comments.append(contentsOf: batch.map { PRComment(author: $0.user.login, createdAt: $0.createdAt) })
+            if batch.count < 100 { break }
+            page += 1
+        }
+        return comments
+    }
+
+    func fetchIssueComments(owner: String, repo: String, prNumber: Int) async throws -> [PRComment] {
+        var page = 1
+        var comments: [PRComment] = []
+        while true {
+            let url = URL(string: "https://api.github.com/repos/\(owner)/\(repo)/issues/\(prNumber)/comments?per_page=100&page=\(page)")!
+            let request = try makeRequest(url: url)
+            let (data, response) = try await session.data(for: request)
+            try validate(response: response)
+            let batch = try decoder.decode([IssueCommentDTO].self, from: data)
+            comments.append(contentsOf: batch.map { PRComment(author: $0.user.login, createdAt: $0.createdAt) })
+            if batch.count < 100 { break }
+            page += 1
+        }
+        return comments
+    }
+
+    func fetchPullRequestReviews(owner: String, repo: String, prNumber: Int) async throws -> [PRComment] {
+        var page = 1
+        var comments: [PRComment] = []
+        while true {
+            let url = URL(string: "https://api.github.com/repos/\(owner)/\(repo)/pulls/\(prNumber)/reviews?per_page=100&page=\(page)")!
+            let request = try makeRequest(url: url)
+            let (data, response) = try await session.data(for: request)
+            try validate(response: response)
+            let batch = try decoder.decode([PullRequestReviewDTO].self, from: data)
+            comments.append(contentsOf: batch.compactMap { review in
+                guard let submittedAt = review.submittedAt else { return nil }
+                return PRComment(author: review.user.login, createdAt: submittedAt)
+            })
+            if batch.count < 100 { break }
+            page += 1
+        }
+        return comments
+    }
+
+    func fetchAllPRComments(owner: String, repo: String, prNumber: Int) async throws -> [PRComment] {
+        async let reviewComments = fetchReviewComments(owner: owner, repo: repo, prNumber: prNumber)
+        async let issueComments = fetchIssueComments(owner: owner, repo: repo, prNumber: prNumber)
+        async let reviews = fetchPullRequestReviews(owner: owner, repo: repo, prNumber: prNumber)
+        let resolvedReviewComments = try await reviewComments
+        let resolvedIssueComments = try await issueComments
+        let resolvedReviews = try await reviews
+        return resolvedReviewComments + resolvedIssueComments + resolvedReviews
     }
 
     func fetchViewerLogin() async throws -> String {
@@ -89,6 +172,7 @@ final class GitHubClient {
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
+        request.setValue("PRMonitor", forHTTPHeaderField: "User-Agent")
         return request
     }
 
@@ -97,7 +181,26 @@ final class GitHubClient {
             throw GitHubClientError.invalidResponse
         }
         guard (200...299).contains(http.statusCode) else {
-            throw GitHubClientError.invalidResponse
+            if http.statusCode == 403 || http.statusCode == 429 {
+                let remaining = http.value(forHTTPHeaderField: "X-RateLimit-Remaining")
+                let retryAfter = http.value(forHTTPHeaderField: "Retry-After")
+                let reset = http.value(forHTTPHeaderField: "X-RateLimit-Reset")
+
+                let resetDate: Date? = {
+                    if let retryAfter, let seconds = TimeInterval(retryAfter) {
+                        return Date().addingTimeInterval(seconds)
+                    }
+                    if let reset, let timestamp = TimeInterval(reset) {
+                        return Date(timeIntervalSince1970: timestamp)
+                    }
+                    return nil
+                }()
+
+                if remaining == "0" || http.statusCode == 429 {
+                    throw GitHubClientError.rateLimited(reset: resetDate)
+                }
+            }
+            throw GitHubClientError.httpError(status: http.statusCode)
         }
     }
 }
@@ -129,9 +232,11 @@ struct PullRequestDTO: Decodable {
 
 struct CheckRunsResponse: Decodable {
     var checkRuns: [CheckRunDTO]
+    var totalCount: Int
 
     enum CodingKeys: String, CodingKey {
         case checkRuns = "check_runs"
+        case totalCount = "total_count"
     }
 }
 
@@ -144,6 +249,7 @@ struct CheckRunDTO: Decodable {
     var name: String
     var status: String
     var conclusion: String?
+    var startedAt: Date?
     var completedAt: Date?
     var app: App?
 
@@ -151,6 +257,7 @@ struct CheckRunDTO: Decodable {
         case name
         case status
         case conclusion
+        case startedAt = "started_at"
         case completedAt = "completed_at"
         case app
     }
@@ -163,6 +270,45 @@ struct ReviewCommentDTO: Decodable {
 
     var id: Int
     var user: User
+    var createdAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case user
+        case createdAt = "created_at"
+    }
+}
+
+struct IssueCommentDTO: Decodable {
+    struct User: Decodable {
+        var login: String
+    }
+
+    var id: Int
+    var user: User
+    var createdAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case user
+        case createdAt = "created_at"
+    }
+}
+
+struct PullRequestReviewDTO: Decodable {
+    struct User: Decodable {
+        var login: String
+    }
+
+    var id: Int
+    var user: User
+    var submittedAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case user
+        case submittedAt = "submitted_at"
+    }
 }
 
 struct ViewerDTO: Decodable {

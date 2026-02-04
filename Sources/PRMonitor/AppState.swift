@@ -28,6 +28,7 @@ final class AppState: ObservableObject {
     private var activeInterval: TimeInterval?
     private let idleIntervalSeconds: TimeInterval = 600
     private var lastAgentStatus: [String: AgentRunStatus] = [:]
+    private var refreshTask: Task<Void, Never>?
 
     init(settingsStore: SettingsStore, authStore: AuthStore) {
         self.settingsStore = settingsStore
@@ -73,21 +74,30 @@ final class AppState: ObservableObject {
             return
         }
 
-        isRefreshing = true
-        errorMessage = nil
+        refreshTask?.cancel()
+        refreshTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            isRefreshing = true
+            errorMessage = nil
+            defer { isRefreshing = false }
 
-        Task {
             do {
                 let sections = try await pollingService.fetchRepoSections(repos: repos, agents: settingsStore.agents)
+                if Task.isCancelled { return }
                 repoSections = sections.filter { !$0.prs.isEmpty }
                 lastRefresh = Date()
                 await updateViewerLogin()
                 handleNotificationsIfNeeded()
                 updateTimerInterval(hasOpenPRs: !repoSections.isEmpty)
             } catch {
+                if Task.isCancelled { return }
+                if let clientError = error as? GitHubClientError {
+                    if case .rateLimited(let reset) = clientError {
+                        applyRateLimitBackoff(reset: reset)
+                    }
+                }
                 errorMessage = error.localizedDescription
             }
-            isRefreshing = false
         }
     }
 
@@ -113,7 +123,7 @@ final class AppState: ObservableObject {
         guard notificationsAvailable else { return }
         let content = UNMutableNotificationContent()
         content.title = "PR Monitor"
-        content.body = "All agents have completed their checks and comments."
+        content.body = "All agents have completed their checks."
         let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
         UNUserNotificationCenter.current().add(request)
     }
@@ -187,6 +197,19 @@ final class AppState: ObservableObject {
         activeInterval = targetInterval
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: targetInterval, repeats: true) { [weak self] _ in
+            self?.refreshNow()
+        }
+    }
+
+    private func applyRateLimitBackoff(reset: Date?) {
+        guard authStore.isSignedIn else { return }
+        guard !settingsStore.enabledRepos.isEmpty else { return }
+        guard let reset else { return }
+        let delay = max(60, reset.timeIntervalSinceNow)
+        guard delay > 0 else { return }
+        activeInterval = delay
+        timer?.invalidate()
+        timer = Timer.scheduledTimer(withTimeInterval: delay, repeats: true) { [weak self] _ in
             self?.refreshNow()
         }
     }

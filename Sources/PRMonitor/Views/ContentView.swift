@@ -3,7 +3,7 @@ import AppKit
 
 struct ContentView: View {
     @EnvironmentObject private var appState: AppState
-    @State private var expandedPRs: Set<Int> = []
+    @State private var expandedPRs: Set<String> = []
 
     var body: some View {
         VStack(spacing: 12) {
@@ -79,7 +79,7 @@ struct ContentView: View {
     private func prRow(_ pr: PRItem) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .center, spacing: 8) {
-                Image(systemName: expandedPRs.contains(pr.id) ? "chevron.down" : "chevron.right")
+                Image(systemName: expandedPRs.contains(prKey(pr)) ? "chevron.down" : "chevron.right")
                     .font(.caption)
                     .foregroundColor(.secondary)
                 VStack(alignment: .leading, spacing: 4) {
@@ -95,10 +95,10 @@ struct ContentView: View {
             }
             .contentShape(Rectangle())
             .onTapGesture {
-                togglePR(pr.id)
+                togglePR(pr)
             }
 
-            if expandedPRs.contains(pr.id) {
+            if expandedPRs.contains(prKey(pr)) {
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(pr.agents) { agent in
                         agentRow(pr: pr, agent: agent)
@@ -170,12 +170,17 @@ struct ContentView: View {
         .frame(maxWidth: .infinity, minHeight: 120)
     }
 
-    private func togglePR(_ id: Int) {
-        if expandedPRs.contains(id) {
-            expandedPRs.remove(id)
+    private func togglePR(_ pr: PRItem) {
+        let key = prKey(pr)
+        if expandedPRs.contains(key) {
+            expandedPRs.remove(key)
         } else {
-            expandedPRs.insert(id)
+            expandedPRs.insert(key)
         }
+    }
+
+    private func prKey(_ pr: PRItem) -> String {
+        "\(pr.repoFullName)#\(pr.number)"
     }
 
     @ViewBuilder

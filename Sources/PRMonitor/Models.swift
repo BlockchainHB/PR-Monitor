@@ -54,3 +54,8 @@ struct RepoSection: Identifiable, Hashable {
     var fullName: String
     var prs: [PRItem]
 }
+
+struct PRComment: Hashable {
+    var author: String
+    var createdAt: Date
+}

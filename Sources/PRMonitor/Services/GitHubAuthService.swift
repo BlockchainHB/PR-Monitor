@@ -31,6 +31,7 @@ final class GitHubAuthService {
         request.httpMethod = "POST"
         let body = "client_id=\(clientId)&scope=repo"
         request.httpBody = body.data(using: .utf8)
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
 
         let (data, _) = try await session.data(for: request)
         let payload = try parseFormEncoded(data)
@@ -70,6 +71,7 @@ final class GitHubAuthService {
             request.httpMethod = "POST"
             let body = "client_id=\(clientId)&device_code=\(deviceCode)&grant_type=urn:ietf:params:oauth:grant-type:device_code"
             request.httpBody = body.data(using: .utf8)
+            request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
 
             let (data, _) = try await session.data(for: request)
             let payload = try parseFormEncoded(data)
