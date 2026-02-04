@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import Foundation
 
 struct ContentView: View {
     @EnvironmentObject private var appState: AppState
@@ -9,15 +10,15 @@ struct ContentView: View {
         VStack(spacing: 12) {
             header
             if let error = appState.errorMessage {
-                Text(error)
+                Label(error, systemImage: "exclamationmark.triangle.fill")
                     .font(.caption)
-                    .foregroundColor(.red)
+                    .foregroundStyle(.red)
             }
             Divider()
             content
         }
         .padding(12)
-        .frame(width: 420)
+        .frame(minWidth: 360, idealWidth: 420)
     }
 
     private var header: some View {
@@ -25,34 +26,53 @@ struct ContentView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("PR Monitor")
                     .font(.headline)
-                if let login = appState.viewerLogin {
-                    Text("Signed in as \(login)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                } else {
-                    Text(appState.authStore.isSignedIn ? "Connected" : "Sign in required")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                HStack(spacing: 6) {
+                    Text(statusText)
+                    if let detail = statusDetailText {
+                        Text("• \(detail)")
+                    }
                 }
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
             Spacer()
-            Button {
-                appState.refreshNow()
-            } label: {
-                Label("Refresh", systemImage: "arrow.clockwise")
+            ControlGroup {
+                Button {
+                    appState.refreshNow()
+                } label: {
+                    if appState.isRefreshing {
+                        Label {
+                            Text("Refreshing")
+                        } icon: {
+                            ProgressView()
+                        }
+                    } else {
+                        Label("Refresh", systemImage: "arrow.clockwise")
+                    }
+                }
+                .help("Refresh now")
+                .disabled(appState.isRefreshing)
+                settingsButton
             }
-            .buttonStyle(.borderless)
-            .help("Refresh now")
-            settingsButton
+            .controlGroupStyle(.automatic)
+            .labelStyle(.iconOnly)
         }
     }
 
     @ViewBuilder
     private var content: some View {
         if !appState.authStore.isSignedIn {
-            emptyState(text: "Connect GitHub to start monitoring.")
+            unavailableView(
+                title: "Sign in to GitHub",
+                systemImage: "person.crop.circle.badge.xmark",
+                message: "Connect GitHub to start monitoring."
+            )
         } else if appState.repoSections.isEmpty {
-            emptyState(text: "No open PRs in tracked repos.")
+            unavailableView(
+                title: "No Open Pull Requests",
+                systemImage: "tray",
+                message: "No open PRs in tracked repos."
+            )
         } else {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 10) {
@@ -66,56 +86,77 @@ struct ContentView: View {
     }
 
     private func repoSection(_ section: RepoSection) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(section.fullName)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-            ForEach(section.prs) { pr in
-                prRow(pr)
+        GroupBox {
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(section.prs) { pr in
+                    prRow(pr)
+                }
             }
+        } label: {
+            Text(section.fullName)
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 
     private func prRow(_ pr: PRItem) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .center, spacing: 8) {
-                Image(systemName: expandedPRs.contains(prKey(pr)) ? "chevron.down" : "chevron.right")
+        DisclosureGroup(isExpanded: isExpandedBinding(for: pr)) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 12) {
+                    Link(destination: pr.url) {
+                        Label("Open PR", systemImage: "arrow.up.right.square")
+                    }
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .buttonStyle(.link)
+                    Button {
+                        copyToPasteboard(pr.url.absoluteString)
+                    } label: {
+                        Label("Copy URL", systemImage: "link")
+                    }
+                    .font(.caption)
+                    .buttonStyle(.link)
+                }
+                ForEach(pr.agents) { agent in
+                    agentRow(pr: pr, agent: agent)
+                }
+            }
+            .padding(.leading, 16)
+        } label: {
+            HStack(alignment: .center, spacing: 8) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("#\(pr.number) \(pr.title)")
-                        .font(.callout)
-                        .lineLimit(1)
-                    Text("by \(pr.author)")
+                    HStack(spacing: 6) {
+                        Text("#\(pr.number)")
+                            .font(.callout.weight(.semibold))
+                            .monospacedDigit()
+                        Text(pr.title)
+                            .font(.callout)
+                            .lineLimit(1)
+                    }
+                    Text("by \(pr.author) • Updated \(relativeTime(from: pr.updatedAt))")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
                 Spacer()
                 StatusPill(status: prStatus(pr))
             }
-            .contentShape(Rectangle())
-            .onTapGesture {
-                togglePR(pr)
+        }
+        .padding(10)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .contextMenu {
+            Button("Open Pull Request") {
+                openPR(pr.url)
             }
-
-            if expandedPRs.contains(prKey(pr)) {
-                VStack(alignment: .leading, spacing: 6) {
-                    ForEach(pr.agents) { agent in
-                        agentRow(pr: pr, agent: agent)
-                    }
-                }
-                .padding(.leading, 16)
+            Button("Copy URL") {
+                copyToPasteboard(pr.url.absoluteString)
+            }
+            Button("Copy Title") {
+                copyToPasteboard("#\(pr.number) \(pr.title)")
             }
         }
-        .padding(8)
-        .background(Color(nsColor: .controlBackgroundColor))
-        .cornerRadius(8)
     }
 
     private func agentRow(pr: PRItem, agent: AgentRun) -> some View {
-        Button {
-            NSWorkspace.shared.open(pr.url)
-        } label: {
+        Link(destination: pr.url) {
             HStack {
                 Circle()
                     .fill(agentColor(agent.status))
@@ -125,10 +166,12 @@ struct ContentView: View {
                 Spacer()
                 Text(agentStatusText(agent))
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("\(agent.displayName), \(agentStatusText(agent))")
+        .accessibilityHint("Opens pull request in browser")
     }
 
     private func prStatus(_ pr: PRItem) -> AgentRunStatus {
@@ -154,8 +197,10 @@ struct ContentView: View {
         switch status {
         case .running:
             return .blue
-        case .waitingForComment, .notFound:
-            return .yellow
+        case .waitingForComment:
+            return .orange
+        case .notFound:
+            return .gray
         case .done:
             return .green
         }
@@ -165,22 +210,9 @@ struct ContentView: View {
         VStack(spacing: 8) {
             Text(text)
                 .font(.callout)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, minHeight: 120)
-    }
-
-    private func togglePR(_ pr: PRItem) {
-        let key = prKey(pr)
-        if expandedPRs.contains(key) {
-            expandedPRs.remove(key)
-        } else {
-            expandedPRs.insert(key)
-        }
-    }
-
-    private func prKey(_ pr: PRItem) -> String {
-        "\(pr.repoFullName)#\(pr.number)"
     }
 
     @ViewBuilder
@@ -190,13 +222,95 @@ struct ContentView: View {
                 Label("Settings", systemImage: "gear")
             }
             .buttonStyle(.borderless)
+            .help("Settings")
         } else {
             Button {
-                NSApp.sendAction(Selector("showSettingsWindow:"), to: nil, from: nil)
+                openSettings()
             } label: {
                 Label("Settings", systemImage: "gear")
             }
             .buttonStyle(.borderless)
+            .help("Settings")
+        }
+    }
+
+    private var settingsAction: some View {
+        Group {
+            if #available(macOS 14.0, *) {
+                SettingsLink("Open Settings")
+            } else {
+                Button("Open Settings") {
+                    openSettings()
+                }
+            }
+        }
+    }
+
+    private func isExpandedBinding(for pr: PRItem) -> Binding<Bool> {
+        let key = prKey(pr)
+        Binding(
+            get: { expandedPRs.contains(key) },
+            set: { isExpanded in
+                if isExpanded {
+                    expandedPRs.insert(key)
+                } else {
+                    expandedPRs.remove(key)
+                }
+            }
+        )
+    }
+
+    private func prKey(_ pr: PRItem) -> String {
+        "\(pr.repoFullName)#\(pr.number)"
+    }
+
+    private func openSettings() {
+        NSApp.sendAction(Selector("showSettingsWindow:"), to: nil, from: nil)
+    }
+
+    private func openPR(_ url: URL) {
+        NSWorkspace.shared.open(url)
+    }
+
+    private func copyToPasteboard(_ value: String) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(value, forType: .string)
+    }
+
+    private var statusText: String {
+        if let login = appState.viewerLogin {
+            return "Signed in as \(login)"
+        }
+        return appState.authStore.isSignedIn ? "Connected" : "Sign in required"
+    }
+
+    private var statusDetailText: String? {
+        if appState.isRefreshing {
+            return "Refreshing…"
+        }
+        guard let last = appState.lastRefresh else { return nil }
+        return "Updated \(relativeTime(from: last))"
+    }
+
+    private func relativeTime(from date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter.localizedString(for: date, relativeTo: Date())
+    }
+
+    @ViewBuilder
+    private func unavailableView(title: String, systemImage: String, message: String) -> some View {
+        if #available(macOS 14.0, *) {
+            ContentUnavailableView {
+                Label(title, systemImage: systemImage)
+            } description: {
+                Text(message)
+            } actions: {
+                settingsAction
+            }
+        } else {
+            emptyState(text: message)
         }
     }
 }
@@ -221,8 +335,10 @@ private struct StatusPill: View {
         switch status {
         case .running:
             return .blue
-        case .waitingForComment, .notFound:
-            return .yellow
+        case .waitingForComment:
+            return .orange
+        case .notFound:
+            return .gray
         case .done:
             return .green
         }
@@ -230,11 +346,12 @@ private struct StatusPill: View {
 
     var body: some View {
         Text(text)
-            .font(.caption2)
+            .font(.caption2.weight(.semibold))
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(color.opacity(0.2))
-            .foregroundColor(color)
-            .cornerRadius(8)
+            .background(color.opacity(0.2), in: Capsule())
+            .foregroundStyle(color)
+            .accessibilityLabel("Status")
+            .accessibilityValue(text)
     }
 }
