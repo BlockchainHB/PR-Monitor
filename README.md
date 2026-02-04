@@ -37,7 +37,7 @@ With multiple agent reviewers running in parallel, it’s easy to get stuck cont
 
 The easiest way to install is from GitHub Releases (standard for menu bar apps):
 
-1. Download the latest `PRMonitor.app.zip` from [Releases](https://github.com/BlockchainHB/checks/releases).
+1. Download the latest `PRMonitor.app.zip` from [Releases](https://github.com/BlockchainHB/PR-Monitor/releases).
 2. Unzip and move `PRMonitor.app` to `/Applications`.
 3. Launch it from Spotlight or `/Applications`.
 
