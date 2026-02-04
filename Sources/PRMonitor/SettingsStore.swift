@@ -13,6 +13,9 @@ final class SettingsStore: ObservableObject {
     @Published var notifyPerAgent: Bool = false {
         didSet { save() }
     }
+    @Published var notifySummary: Bool = true {
+        didSet { save() }
+    }
     @Published var githubClientId: String = "" {
         didSet { save() }
     }
@@ -69,12 +72,14 @@ final class SettingsStore: ObservableObject {
             agents = decoded.agents
             pollingIntervalSeconds = decoded.pollingIntervalSeconds
             notifyPerAgent = decoded.notifyPerAgent
+            notifySummary = decoded.notifySummary
             githubClientId = decoded.githubClientId
         } catch {
             repos = []
             agents = []
             pollingIntervalSeconds = 60
             notifyPerAgent = false
+            notifySummary = true
             githubClientId = ""
         }
     }
@@ -85,6 +90,7 @@ final class SettingsStore: ObservableObject {
             agents: agents,
             pollingIntervalSeconds: pollingIntervalSeconds,
             notifyPerAgent: notifyPerAgent,
+            notifySummary: notifySummary,
             githubClientId: githubClientId
         )
         guard let data = try? JSONEncoder().encode(payload) else { return }
@@ -97,5 +103,34 @@ private struct PersistedSettings: Codable {
     var agents: [AgentConfig]
     var pollingIntervalSeconds: Int
     var notifyPerAgent: Bool
+    var notifySummary: Bool
     var githubClientId: String
+
+    enum CodingKeys: String, CodingKey {
+        case repos
+        case agents
+        case pollingIntervalSeconds
+        case notifyPerAgent
+        case notifySummary
+        case githubClientId
+    }
+
+    init(repos: [RepoConfig], agents: [AgentConfig], pollingIntervalSeconds: Int, notifyPerAgent: Bool, notifySummary: Bool, githubClientId: String) {
+        self.repos = repos
+        self.agents = agents
+        self.pollingIntervalSeconds = pollingIntervalSeconds
+        self.notifyPerAgent = notifyPerAgent
+        self.notifySummary = notifySummary
+        self.githubClientId = githubClientId
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        repos = try container.decodeIfPresent([RepoConfig].self, forKey: .repos) ?? []
+        agents = try container.decodeIfPresent([AgentConfig].self, forKey: .agents) ?? []
+        pollingIntervalSeconds = try container.decodeIfPresent(Int.self, forKey: .pollingIntervalSeconds) ?? 60
+        notifyPerAgent = try container.decodeIfPresent(Bool.self, forKey: .notifyPerAgent) ?? false
+        notifySummary = try container.decodeIfPresent(Bool.self, forKey: .notifySummary) ?? true
+        githubClientId = try container.decodeIfPresent(String.self, forKey: .githubClientId) ?? ""
+    }
 }

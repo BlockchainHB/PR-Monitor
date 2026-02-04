@@ -18,8 +18,11 @@ final class PollingService {
                 group.addTask {
                     await repoSemaphore.wait()
                     defer { repoSemaphore.signal() }
+                    print("   🔄 Fetching PRs for \(repo.fullName)...")
                     let pulls = try await self.client.fetchOpenPullRequests(repo: repo)
+                    print("   📝 Found \(pulls.count) open PRs in \(repo.fullName)")
                     let prs = try await self.buildPRItems(repo: repo, pulls: pulls, agents: agents)
+                    print("   ✅ Built \(prs.count) PR items for \(repo.fullName)")
                     return RepoSection(fullName: repo.fullName, prs: prs)
                 }
             }
@@ -77,7 +80,8 @@ final class PollingService {
         return agents.map { agent in
             let matchingRuns = checkRuns.filter { matches(checkRun: $0, agent: agent) }
             let bestRun = latestRun(from: matchingRuns)
-            let commentCount = commentCountForAgent(agent: agent, comments: comments, since: bestRun?.startedAt ?? bestRun?.completedAt)
+            let since = bestRun?.startedAt ?? bestRun?.createdAt ?? bestRun?.completedAt
+            let commentCount = commentCountForAgent(agent: agent, comments: comments, since: since)
 
             guard let run = bestRun else {
                 let status: AgentRunStatus = commentCount > 0 ? .done : .notFound
@@ -94,11 +98,13 @@ final class PollingService {
         var runs: [AgentRun] = []
 
         for run in checkRuns {
-            let display = run.app?.name ?? run.name
-            guard !seen.contains(display) else { continue }
-            seen.insert(display)
+            let key = runKey(run)
+            guard !seen.contains(key) else { continue }
+            seen.insert(key)
+            let display = runDisplayName(run)
 
-            let commentCount = inferCommentCount(app: run.app, comments: comments, since: run.startedAt ?? run.completedAt)
+            let since = run.startedAt ?? run.createdAt ?? run.completedAt
+            let commentCount = inferCommentCount(app: run.app, comments: comments, since: since)
             let status = agentStatus(run: run, commentCount: commentCount)
             runs.append(AgentRun(id: display, displayName: display, status: status, commentCount: commentCount, checkConclusion: run.conclusion))
         }
@@ -135,9 +141,6 @@ final class PollingService {
             return .running
         }
         if commentCount > 0 {
-            return .done
-        }
-        if let completedAt = run.completedAt, Date().timeIntervalSince(completedAt) < 120 {
             return .waitingForComment
         }
         return .done
@@ -169,7 +172,8 @@ final class PollingService {
     }
 
     private func runDate(_ run: CheckRunDTO) -> Date {
-        run.startedAt ?? run.completedAt ?? .distantPast
+        let candidates = [run.startedAt, run.completedAt, run.createdAt].compactMap { $0 }
+        return candidates.max() ?? .distantPast
     }
 
     private func filterComments(_ comments: [PRComment], since: Date?) -> [PRComment] {
@@ -182,5 +186,23 @@ final class PollingService {
         let removedBot = lowered.replacingOccurrences(of: "[bot]", with: "")
         let allowed = removedBot.filter { $0.isLetter || $0.isNumber }
         return allowed
+    }
+
+    private func runKey(_ run: CheckRunDTO) -> String {
+        let appKey = run.app?.slug ?? run.app?.name ?? ""
+        return "\(appKey.lowercased())::\(run.name.lowercased())"
+    }
+
+    private func runDisplayName(_ run: CheckRunDTO) -> String {
+        let appName = run.app?.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let runName = run.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !appName.isEmpty else { return runName }
+        if appName.caseInsensitiveCompare(runName) == .orderedSame {
+            return appName
+        }
+        if runName.isEmpty {
+            return appName
+        }
+        return "\(appName) — \(runName)"
     }
 }

@@ -35,7 +35,7 @@ struct StatusBarLabel: View {
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            Image(systemName: "rectangle.stack")
+            Image(systemName: "waveform.path.ecg")
                 .font(.system(size: 14, weight: .medium))
             Circle()
                 .fill(color)

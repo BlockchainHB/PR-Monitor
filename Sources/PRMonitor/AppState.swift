@@ -28,6 +28,7 @@ final class AppState: ObservableObject {
     private var activeInterval: TimeInterval?
     private let idleIntervalSeconds: TimeInterval = 600
     private var lastAgentStatus: [String: AgentRunStatus] = [:]
+    private var lastReviewSummaryToken: [String: String] = [:]
     private var refreshTask: Task<Void, Never>?
 
     init(settingsStore: SettingsStore, authStore: AuthStore) {
@@ -64,12 +65,14 @@ final class AppState: ObservableObject {
     func refreshNow() {
         guard authStore.isSignedIn else {
             repoSections = []
+            errorMessage = "Not signed in to GitHub"
             updateTimerInterval(hasOpenPRs: false)
             return
         }
         let repos = settingsStore.enabledRepos
         guard !repos.isEmpty else {
             repoSections = []
+            errorMessage = "No repositories enabled. Add repos in Settings."
             updateTimerInterval(hasOpenPRs: false)
             return
         }
@@ -82,15 +85,25 @@ final class AppState: ObservableObject {
             defer { isRefreshing = false }
 
             do {
+                print("🔍 Fetching data for \(repos.count) enabled repos: \(repos.map { $0.fullName }.joined(separator: ", "))")
                 let sections = try await pollingService.fetchRepoSections(repos: repos, agents: settingsStore.agents)
+                print("📊 Got \(sections.count) sections with PRs")
+                for section in sections {
+                    print("   - \(section.fullName): \(section.prs.count) PRs")
+                }
                 if Task.isCancelled { return }
-                repoSections = sections.filter { !$0.prs.isEmpty }
+                let filtered = sections.filter { !$0.prs.isEmpty }
+                print("✅ Displaying \(filtered.count) sections after filtering")
+                print("   Setting repoSections to \(filtered.count) items on @MainActor")
+                repoSections = filtered
+                print("   ✅ repoSections now has \(repoSections.count) items")
                 lastRefresh = Date()
                 await updateViewerLogin()
                 handleNotificationsIfNeeded()
                 updateTimerInterval(hasOpenPRs: !repoSections.isEmpty)
             } catch {
                 if Task.isCancelled { return }
+                print("❌ Error fetching PRs: \(error)")
                 if let clientError = error as? GitHubClientError {
                     if case .rateLimited(let reset) = clientError {
                         applyRateLimitBackoff(reset: reset)
@@ -117,6 +130,7 @@ final class AppState: ObservableObject {
         }
         lastAllDone = allDone
         handlePerAgentNotifications()
+        handleReviewSummaryNotifications()
     }
 
     private func sendAllDoneNotification() {
@@ -126,6 +140,89 @@ final class AppState: ObservableObject {
         content.body = "All agents have completed their checks."
         let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
         UNUserNotificationCenter.current().add(request)
+    }
+
+    private func handleReviewSummaryNotifications() {
+        guard notificationsAvailable else { return }
+        guard settingsStore.notifySummary else { return }
+
+        var nextTokens: [String: String] = [:]
+
+        for section in repoSections {
+            for pr in section.prs {
+                let agents = pr.agents
+                guard !agents.isEmpty else { continue }
+                let allFinished = agents.allSatisfy { $0.status == .done || $0.status == .waitingForComment }
+                guard allFinished else { continue }
+
+                let token = reviewSummaryToken(for: pr)
+                let key = "\(section.fullName)#\(pr.number)"
+                nextTokens[key] = token
+
+                if lastReviewSummaryToken[key] != token {
+                    sendReviewSummaryNotification(pr: pr, agents: agents)
+                }
+            }
+        }
+
+        lastReviewSummaryToken = nextTokens
+    }
+
+    private func reviewSummaryToken(for pr: PRItem) -> String {
+        let commentCount = pr.agents.filter { $0.commentCount > 0 }.count
+        let total = pr.agents.count
+        let hasFailure = pr.agents.contains { isFailureConclusion($0.checkConclusion) }
+        return "\(pr.updatedAt.timeIntervalSince1970)-\(commentCount)-\(total)-\(hasFailure)"
+    }
+
+    private func sendReviewSummaryNotification(pr: PRItem, agents: [AgentRun]) {
+        let total = agents.count
+        let commentAgents = agents.filter { $0.commentCount > 0 }.count
+        let hasFailure = agents.contains { isFailureConclusion($0.checkConclusion) }
+
+        let title: String
+        let body: String
+
+        if hasFailure {
+            title = "Build failed"
+            body = reviewBody(pr: pr, commentAgents: commentAgents, total: total)
+        } else if commentAgents == 0 {
+            title = "Review completed"
+            body = "#\(pr.number) \(pr.title) • No comments"
+        } else if commentAgents == total {
+            title = "Needs review"
+            body = "#\(pr.number) \(pr.title) • Comments from all agents"
+        } else {
+            title = "Needs review"
+            body = "#\(pr.number) \(pr.title) • Comments from \(commentAgents) of \(total) agents"
+        }
+
+        let content = UNMutableNotificationContent()
+        content.title = "PR Monitor"
+        content.subtitle = title
+        content.body = body
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    private func isFailureConclusion(_ conclusion: String?) -> Bool {
+        guard let conclusion, !conclusion.isEmpty else { return false }
+        switch conclusion.lowercased() {
+        case "success", "neutral", "skipped":
+            return false
+        default:
+            return true
+        }
+    }
+
+    private func reviewBody(pr: PRItem, commentAgents: Int, total: Int) -> String {
+        if commentAgents == 0 {
+            return "#\(pr.number) \(pr.title) • No comments"
+        }
+        if commentAgents == total {
+            return "#\(pr.number) \(pr.title) • Comments from all agents"
+        }
+        return "#\(pr.number) \(pr.title) • Comments from \(commentAgents) of \(total) agents"
     }
 
     private func handlePerAgentNotifications() {

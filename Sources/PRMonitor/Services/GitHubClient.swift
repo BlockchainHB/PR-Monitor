@@ -249,6 +249,7 @@ struct CheckRunDTO: Decodable {
     var name: String
     var status: String
     var conclusion: String?
+    var createdAt: Date?
     var startedAt: Date?
     var completedAt: Date?
     var app: App?
@@ -257,6 +258,7 @@ struct CheckRunDTO: Decodable {
         case name
         case status
         case conclusion
+        case createdAt = "created_at"
         case startedAt = "started_at"
         case completedAt = "completed_at"
         case app
