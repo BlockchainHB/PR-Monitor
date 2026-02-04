@@ -41,6 +41,7 @@ struct ContentView: View {
             } label: {
                 Image(systemName: "arrow.clockwise")
             }
+            .buttonStyle(.borderless)
             .help("Refresh now")
             settingsButton
         }
@@ -107,7 +108,7 @@ struct ContentView: View {
             }
         }
         .padding(8)
-        .background(Color(NSColor.windowBackgroundColor))
+        .background(Color(nsColor: .controlBackgroundColor))
         .cornerRadius(8)
     }
 
@@ -183,6 +184,7 @@ struct ContentView: View {
             SettingsLink {
                 Image(systemName: "gear")
             }
+            .buttonStyle(.borderless)
             .help("Settings")
         } else {
             Button {
@@ -190,6 +192,7 @@ struct ContentView: View {
             } label: {
                 Image(systemName: "gear")
             }
+            .buttonStyle(.borderless)
             .help("Settings")
         }
     }
