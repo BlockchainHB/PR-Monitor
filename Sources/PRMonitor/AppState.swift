@@ -85,25 +85,16 @@ final class AppState: ObservableObject {
             defer { isRefreshing = false }
 
             do {
-                print("🔍 Fetching data for \(repos.count) enabled repos: \(repos.map { $0.fullName }.joined(separator: ", "))")
                 let sections = try await pollingService.fetchRepoSections(repos: repos, agents: settingsStore.agents)
-                print("📊 Got \(sections.count) sections with PRs")
-                for section in sections {
-                    print("   - \(section.fullName): \(section.prs.count) PRs")
-                }
                 if Task.isCancelled { return }
                 let filtered = sections.filter { !$0.prs.isEmpty }
-                print("✅ Displaying \(filtered.count) sections after filtering")
-                print("   Setting repoSections to \(filtered.count) items on @MainActor")
                 repoSections = filtered
-                print("   ✅ repoSections now has \(repoSections.count) items")
                 lastRefresh = Date()
                 await updateViewerLogin()
                 handleNotificationsIfNeeded()
                 updateTimerInterval(hasOpenPRs: !repoSections.isEmpty)
             } catch {
                 if Task.isCancelled { return }
-                print("❌ Error fetching PRs: \(error)")
                 if let clientError = error as? GitHubClientError {
                     if case .rateLimited(let reset) = clientError {
                         applyRateLimitBackoff(reset: reset)
