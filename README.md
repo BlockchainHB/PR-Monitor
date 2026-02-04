@@ -17,8 +17,7 @@ With multiple agent reviewers running in parallel, it’s easy to get stuck cont
 
 ## Screenshots
 
-<img width="1298" height="940" alt="CleanShot 2026-02-04 at 14 43 13@2x" src="https://github.com/user-attachments/assets/e1a9c754-a1ee-4ad0-bdbd-b65918e362f4" />
-<img width="1298" height="940" alt="CleanShot 2026-02-04 at 14 43 13@2x" src="https://github.com/user-attachments/assets/e1a9c754-a1ee-4ad0-bdbd-b65918e362f4" />
+<img width="400" height="500" alt="CleanShot 2026-02-04 at 14 43 13@2x" src="https://github.com/user-attachments/assets/e1a9c754-a1ee-4ad0-bdbd-b65918e362f4" />
 
 ## Quick Start
 
