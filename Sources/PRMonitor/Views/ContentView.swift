@@ -5,20 +5,34 @@ import Foundation
 struct ContentView: View {
     @EnvironmentObject private var appState: AppState
     @State private var expandedPRs: Set<String> = []
+    @State private var topAreaHeight: CGFloat = 0
+    @State private var listContentHeight: CGFloat = 0
 
     var body: some View {
         VStack(spacing: 12) {
-            header
-            if let error = appState.errorMessage {
-                Label(error, systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.red)
+            VStack(spacing: 12) {
+                header
+                if let error = appState.errorMessage {
+                    Label(error, systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+                Divider()
             }
-            Divider()
+            .background(HeightReader<TopAreaHeightKey>())
+
             content
+                .frame(height: listViewportHeight)
         }
         .padding(12)
         .frame(minWidth: 360, idealWidth: 420)
+        .frame(height: windowHeight)
+        .onPreferenceChange(TopAreaHeightKey.self) { value in
+            topAreaHeight = value
+        }
+        .onPreferenceChange(ListContentHeightKey.self) { value in
+            listContentHeight = value
+        }
     }
 
     private var header: some View {
@@ -36,31 +50,35 @@ struct ContentView: View {
                 .foregroundStyle(.secondary)
             }
             Spacer()
-            ControlGroup {
-                Button {
-                    appState.refreshNow()
-                } label: {
-                    if appState.isRefreshing {
-                        Label {
-                            Text("Refreshing")
-                        } icon: {
-                            ProgressView()
-                        }
-                    } else {
-                        Label("Refresh", systemImage: "arrow.clockwise")
+            Button {
+                appState.refreshNow()
+            } label: {
+                if appState.isRefreshing {
+                    Label {
+                        Text("Refreshing")
+                    } icon: {
+                        ProgressView()
                     }
+                } else {
+                    Label("Refresh", systemImage: "arrow.clockwise")
                 }
-                .help("Refresh now")
-                .disabled(appState.isRefreshing)
-                settingsButton
             }
-            .controlGroupStyle(.automatic)
+            .help("Refresh now")
+            .disabled(appState.isRefreshing)
             .labelStyle(.iconOnly)
         }
     }
 
-    @ViewBuilder
     private var content: some View {
+        ScrollView {
+            contentBody
+                .frame(maxWidth: .infinity)
+                .background(HeightReader<ListContentHeightKey>())
+        }
+    }
+
+    @ViewBuilder
+    private var contentBody: some View {
         if !appState.authStore.isSignedIn {
             unavailableView(
                 title: "Sign in to GitHub",
@@ -74,14 +92,11 @@ struct ContentView: View {
                 message: "No open PRs in tracked repos."
             )
         } else {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 10) {
-                    ForEach(appState.repoSections) { section in
-                        repoSection(section)
-                    }
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach(appState.repoSections) { section in
+                    repoSection(section)
                 }
             }
-            .frame(maxHeight: 520)
         }
     }
 
@@ -215,25 +230,6 @@ struct ContentView: View {
         .frame(maxWidth: .infinity, minHeight: 120)
     }
 
-    @ViewBuilder
-    private var settingsButton: some View {
-        if #available(macOS 14.0, *) {
-            SettingsLink {
-                Label("Settings", systemImage: "gear")
-            }
-            .buttonStyle(.borderless)
-            .help("Settings")
-        } else {
-            Button {
-                openSettings()
-            } label: {
-                Label("Settings", systemImage: "gear")
-            }
-            .buttonStyle(.borderless)
-            .help("Settings")
-        }
-    }
-
     private var settingsAction: some View {
         Group {
             if #available(macOS 14.0, *) {
@@ -299,6 +295,36 @@ struct ContentView: View {
         return formatter.localizedString(for: date, relativeTo: Date())
     }
 
+    private var windowHeight: CGFloat {
+        guard topAreaHeight > 0, listContentHeight > 0 else { return 320 }
+        return min(max(desiredWindowHeight, minWindowHeight), maxWindowHeight)
+    }
+
+    private var listViewportHeight: CGFloat {
+        max(windowHeight - measuredTopAreaHeight - verticalPadding, 0)
+    }
+
+    private var desiredWindowHeight: CGFloat {
+        measuredTopAreaHeight + measuredListHeight + verticalPadding
+    }
+
+    private var measuredTopAreaHeight: CGFloat {
+        max(topAreaHeight, 1)
+    }
+
+    private var measuredListHeight: CGFloat {
+        max(listContentHeight, 1)
+    }
+
+    private var minWindowHeight: CGFloat { 180 }
+
+    private var maxWindowHeight: CGFloat {
+        let screenHeight = NSScreen.main?.visibleFrame.height ?? 800
+        return max(320, screenHeight * 0.7)
+    }
+
+    private var verticalPadding: CGFloat { 24 }
+
     @ViewBuilder
     private func unavailableView(title: String, systemImage: String, message: String) -> some View {
         if #available(macOS 14.0, *) {
@@ -311,6 +337,30 @@ struct ContentView: View {
             }
         } else {
             emptyState(text: message)
+        }
+    }
+}
+
+private struct TopAreaHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+private struct ListContentHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+private struct HeightReader<Key: PreferenceKey>: View where Key.Value == CGFloat {
+    var body: some View {
+        GeometryReader { proxy in
+            Color.clear.preference(key: Key.self, value: proxy.size.height)
         }
     }
 }
