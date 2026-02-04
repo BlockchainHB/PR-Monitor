@@ -84,7 +84,6 @@ struct ContentView: View {
 
     @ViewBuilder
     private var content: some View {
-        let _ = print("🖥️ UI Update - isSignedIn: \(appState.authStore.isSignedIn), sections: \(appState.repoSections.count), isEmpty: \(appState.repoSections.isEmpty)")
         if !appState.authStore.isSignedIn {
             unavailableView(
                 title: "Sign in to GitHub",
@@ -92,18 +91,15 @@ struct ContentView: View {
                 message: "Connect GitHub to start monitoring."
             )
         } else if appState.repoSections.isEmpty {
-            let _ = print("   ⚠️ Showing empty state because repoSections.isEmpty == true")
             unavailableView(
                 title: "No Open Pull Requests",
                 systemImage: "tray",
                 message: "No open PRs in tracked repos."
             )
         } else {
-            let _ = print("   ✅ Showing \(appState.repoSections.count) sections")
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     ForEach(appState.repoSections) { section in
-                        let _ = print("      - Rendering section: \(section.fullName) with \(section.prs.count) PRs")
                         repoSection(section)
                     }
                 }
@@ -121,11 +117,9 @@ struct ContentView: View {
     }
 
     private func repoSection(_ section: RepoSection) -> some View {
-        let _ = print("         🏗️ Building repoSection for \(section.fullName) with \(section.prs.count) PRs")
-        return GroupBox {
+        GroupBox {
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(section.prs) { pr in
-                    let _ = print("            📄 Building prRow for PR #\(pr.number): \(pr.title)")
                     prRow(pr)
                 }
             }
@@ -150,7 +144,7 @@ struct ContentView: View {
                         toggleExpanded(pr)
                     } label: {
                         Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.caption2.weight(.semibold))
                             .foregroundStyle(.secondary)
                             .frame(width: 18, height: 18)
                             .contentShape(Rectangle())
@@ -196,6 +190,7 @@ struct ContentView: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .strokeBorder(isHovered ? Color.primary.opacity(0.12) : Color.clear, lineWidth: 1)
         )
+        .animation(.easeInOut(duration: 0.15), value: isHovered)
         .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .onTapGesture {
             openPR(pr.url)
@@ -229,8 +224,9 @@ struct ContentView: View {
     private func agentRow(_ agent: AgentRun) -> some View {
         HStack(spacing: 8) {
             Circle()
-                .fill(agentColor(agent.status))
+                .fill(agent.status.color)
                 .frame(width: 8, height: 8)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(agent.displayName)
                     .font(.caption)
@@ -259,19 +255,6 @@ struct ContentView: View {
             return conclusionText(agent) ?? "Done"
         case .notFound:
             return "No check yet"
-        }
-    }
-
-    private func agentColor(_ status: AgentRunStatus) -> Color {
-        switch status {
-        case .running:
-            return .blue
-        case .waitingForComment:
-            return .orange
-        case .notFound:
-            return .gray
-        case .done:
-            return .green
         }
     }
 
@@ -314,6 +297,7 @@ struct ContentView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(appState.isRefreshing)
+                .keyboardShortcut("r")
                 .help("Refresh now")
 
                 settingsFooterAction
@@ -386,9 +370,13 @@ struct ContentView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 6)
         .padding(.horizontal, 12)
-        .background(hoveredMenuItem == id ? Color.primary.opacity(0.08) : Color.clear)
+        .background(
+            hoveredMenuItem == id ? Color.primary.opacity(0.08) : Color.clear,
+            in: RoundedRectangle(cornerRadius: 5, style: .continuous)
+        )
         .opacity(isEnabled ? 1 : 0.5)
         .contentShape(Rectangle())
+        .animation(.easeInOut(duration: 0.15), value: hoveredMenuItem == id)
         .onHover { hovering in
             guard isEnabled else { return }
             hoveredMenuItem = hovering ? id : nil
@@ -400,11 +388,13 @@ struct ContentView: View {
     }
 
     private func toggleExpanded(_ pr: PRItem) {
-        let key = prKey(pr)
-        if expandedPRs.contains(key) {
-            expandedPRs.remove(key)
-        } else {
-            expandedPRs.insert(key)
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+            let key = prKey(pr)
+            if expandedPRs.contains(key) {
+                expandedPRs.remove(key)
+            } else {
+                expandedPRs.insert(key)
+            }
         }
     }
 
@@ -517,28 +507,26 @@ private struct StatusPill: View {
         }
     }
 
-    private var color: Color {
-        switch status {
-        case .running:
-            return .blue
-        case .waitingForComment:
-            return .orange
-        case .notFound:
-            return .gray
-        case .done:
-            return .green
-        }
-    }
-
     var body: some View {
         Text(text)
             .font(.caption2.weight(.semibold))
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(color.opacity(0.2), in: Capsule())
-            .foregroundStyle(color)
+            .background(status.color.opacity(0.2), in: Capsule())
+            .foregroundStyle(status.color)
             .accessibilityLabel("Status")
             .accessibilityValue(text)
+    }
+}
+
+extension AgentRunStatus {
+    var color: Color {
+        switch self {
+        case .running: return .blue
+        case .waitingForComment: return .orange
+        case .notFound: return .gray
+        case .done: return .green
+        }
     }
 }
 
