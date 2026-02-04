@@ -34,6 +34,7 @@ final class AuthStore: ObservableObject {
         statusMessage = nil
         isSigningIn = true
         Task {
+            defer { isSigningIn = false }
             do {
                 let flow = try await authService.startDeviceFlow(clientId: clientId)
                 deviceFlow = flow
@@ -44,9 +45,9 @@ final class AuthStore: ObservableObject {
                 statusMessage = "Connected."
                 deviceFlow = nil
             } catch {
+                deviceFlow = nil
                 statusMessage = "Sign-in failed: \(error.localizedDescription)"
             }
-            isSigningIn = false
         }
     }
 

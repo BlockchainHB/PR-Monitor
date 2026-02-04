@@ -14,7 +14,7 @@ final class AgentDiscoveryService {
             let pulls = try await client.fetchOpenPullRequests(repo: repo)
             for pr in pulls {
                 async let checkRunsTask = client.fetchCheckRuns(owner: repo.owner, repo: repo.name, sha: pr.head.sha)
-                async let commentsTask = client.fetchReviewComments(owner: repo.owner, repo: repo.name, prNumber: pr.number)
+                async let commentsTask = client.fetchAllPRComments(owner: repo.owner, repo: repo.name, prNumber: pr.number)
                 let checkRuns = try await checkRunsTask
                 let comments = try await commentsTask
 
@@ -32,12 +32,12 @@ final class AgentDiscoveryService {
                 }
 
                 for comment in comments {
-                    let commentKey = normalize(comment.user.login)
+                    let commentKey = normalize(comment.author)
                     guard !commentKey.isEmpty else { continue }
                     for key in localKeys {
                         if matches(candidateKey: key, commentKey: commentKey) {
                             candidates[key, default: AgentCandidate(displayName: key, checkPattern: key, commentCounts: [:])]
-                                .commentCounts[comment.user.login, default: 0] += 1
+                                .commentCounts[comment.author, default: 0] += 1
                         }
                     }
                 }

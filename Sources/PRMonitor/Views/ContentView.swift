@@ -4,7 +4,7 @@ import Foundation
 
 struct ContentView: View {
     @EnvironmentObject private var appState: AppState
-    @State private var expandedPRs: Set<Int> = []
+    @State private var expandedPRs: Set<String> = []
 
     var body: some View {
         VStack(spacing: 12) {
@@ -100,7 +100,7 @@ struct ContentView: View {
     }
 
     private func prRow(_ pr: PRItem) -> some View {
-        DisclosureGroup(isExpanded: isExpandedBinding(for: pr.id)) {
+        DisclosureGroup(isExpanded: isExpandedBinding(for: pr)) {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 12) {
                     Link(destination: pr.url) {
@@ -246,17 +246,22 @@ struct ContentView: View {
         }
     }
 
-    private func isExpandedBinding(for id: Int) -> Binding<Bool> {
+    private func isExpandedBinding(for pr: PRItem) -> Binding<Bool> {
+        let key = prKey(pr)
         Binding(
-            get: { expandedPRs.contains(id) },
+            get: { expandedPRs.contains(key) },
             set: { isExpanded in
                 if isExpanded {
-                    expandedPRs.insert(id)
+                    expandedPRs.insert(key)
                 } else {
-                    expandedPRs.remove(id)
+                    expandedPRs.remove(key)
                 }
             }
         )
+    }
+
+    private func prKey(_ pr: PRItem) -> String {
+        "\(pr.repoFullName)#\(pr.number)"
     }
 
     private func openSettings() {

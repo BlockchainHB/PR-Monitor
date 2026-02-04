@@ -2,6 +2,8 @@ import Foundation
 
 final class PollingService {
     let client: GitHubClient
+    private let repoConcurrencyLimit = 4
+    private let prConcurrencyLimit = 6
 
     init(client: GitHubClient) {
         self.client = client
@@ -10,9 +12,12 @@ final class PollingService {
     func fetchRepoSections(repos: [RepoConfig], agents: [AgentConfig]) async throws -> [RepoSection] {
         guard !repos.isEmpty else { return [] }
 
+        let repoSemaphore = AsyncSemaphore(value: repoConcurrencyLimit)
         return try await withThrowingTaskGroup(of: RepoSection?.self) { group in
             for repo in repos {
                 group.addTask {
+                    await repoSemaphore.wait()
+                    defer { repoSemaphore.signal() }
                     let pulls = try await self.client.fetchOpenPullRequests(repo: repo)
                     let prs = try await self.buildPRItems(repo: repo, pulls: pulls, agents: agents)
                     return RepoSection(fullName: repo.fullName, prs: prs)
@@ -30,11 +35,14 @@ final class PollingService {
     }
 
     private func buildPRItems(repo: RepoConfig, pulls: [PullRequestDTO], agents: [AgentConfig]) async throws -> [PRItem] {
+        let prSemaphore = AsyncSemaphore(value: prConcurrencyLimit)
         return try await withThrowingTaskGroup(of: PRItem?.self) { group in
             for pr in pulls {
                 group.addTask {
+                    await prSemaphore.wait()
+                    defer { prSemaphore.signal() }
                     async let checkRuns = self.client.fetchCheckRuns(owner: repo.owner, repo: repo.name, sha: pr.head.sha)
-                    async let comments = self.client.fetchReviewComments(owner: repo.owner, repo: repo.name, prNumber: pr.number)
+                    async let comments = self.client.fetchAllPRComments(owner: repo.owner, repo: repo.name, prNumber: pr.number)
                     let resolvedCheckRuns = try await checkRuns
                     let resolvedComments = try await comments
                     let agentRuns = self.buildAgentRuns(checkRuns: resolvedCheckRuns, comments: resolvedComments, agents: agents)
@@ -61,21 +69,19 @@ final class PollingService {
         }
     }
 
-    private func buildAgentRuns(checkRuns: [CheckRunDTO], comments: [ReviewCommentDTO], agents: [AgentConfig]) -> [AgentRun] {
+    private func buildAgentRuns(checkRuns: [CheckRunDTO], comments: [PRComment], agents: [AgentConfig]) -> [AgentRun] {
         if agents.isEmpty {
             return inferAgentRuns(checkRuns: checkRuns, comments: comments)
         }
 
         return agents.map { agent in
             let matchingRuns = checkRuns.filter { matches(checkRun: $0, agent: agent) }
-            let bestRun = matchingRuns.sorted { lhs, rhs in
-                (lhs.completedAt ?? .distantPast) > (rhs.completedAt ?? .distantPast)
-            }.first
-
-            let commentCount = commentCountForAgent(agent: agent, comments: comments)
+            let bestRun = latestRun(from: matchingRuns)
+            let commentCount = commentCountForAgent(agent: agent, comments: comments, since: bestRun?.startedAt ?? bestRun?.completedAt)
 
             guard let run = bestRun else {
-                return AgentRun(id: agent.id.uuidString, displayName: agent.displayName, status: .notFound, commentCount: commentCount, checkConclusion: nil)
+                let status: AgentRunStatus = commentCount > 0 ? .done : .notFound
+                return AgentRun(id: agent.id.uuidString, displayName: agent.displayName, status: status, commentCount: commentCount, checkConclusion: nil)
             }
 
             let status = agentStatus(run: run, commentCount: commentCount)
@@ -83,7 +89,7 @@ final class PollingService {
         }
     }
 
-    private func inferAgentRuns(checkRuns: [CheckRunDTO], comments: [ReviewCommentDTO]) -> [AgentRun] {
+    private func inferAgentRuns(checkRuns: [CheckRunDTO], comments: [PRComment]) -> [AgentRun] {
         var seen: Set<String> = []
         var runs: [AgentRun] = []
 
@@ -92,7 +98,7 @@ final class PollingService {
             guard !seen.contains(display) else { continue }
             seen.insert(display)
 
-            let commentCount = inferCommentCount(app: run.app, comments: comments)
+            let commentCount = inferCommentCount(app: run.app, comments: comments, since: run.startedAt ?? run.completedAt)
             let status = agentStatus(run: run, commentCount: commentCount)
             runs.append(AgentRun(id: display, displayName: display, status: status, commentCount: commentCount, checkConclusion: run.conclusion))
         }
@@ -128,26 +134,47 @@ final class PollingService {
         if run.status != "completed" {
             return .running
         }
-        return commentCount > 0 ? .done : .waitingForComment
+        if commentCount > 0 {
+            return .done
+        }
+        if let completedAt = run.completedAt, Date().timeIntervalSince(completedAt) < 120 {
+            return .waitingForComment
+        }
+        return .done
     }
 
-    private func commentCountForAgent(agent: AgentConfig, comments: [ReviewCommentDTO]) -> Int {
+    private func commentCountForAgent(agent: AgentConfig, comments: [PRComment], since: Date?) -> Int {
+        let filtered = filterComments(comments, since: since)
         let author = agent.commentAuthor.trimmingCharacters(in: .whitespacesAndNewlines)
         if !author.isEmpty {
             let normalizedAuthor = normalize(author)
-            return comments.filter { normalize($0.user.login) == normalizedAuthor }.count
+            return filtered.filter { normalize($0.author) == normalizedAuthor }.count
         }
 
         let normalized = normalize(agent.displayName)
         if normalized.isEmpty {
             return 0
         }
-        return comments.filter { normalize($0.user.login) == normalized }.count
+        return filtered.filter { normalize($0.author) == normalized }.count
     }
 
-    private func inferCommentCount(app: CheckRunDTO.App?, comments: [ReviewCommentDTO]) -> Int {
+    private func inferCommentCount(app: CheckRunDTO.App?, comments: [PRComment], since: Date?) -> Int {
         guard let slug = app?.slug?.lowercased() else { return 0 }
-        return comments.filter { normalize($0.user.login).hasPrefix(slug) }.count
+        let filtered = filterComments(comments, since: since)
+        return filtered.filter { normalize($0.author).hasPrefix(slug) }.count
+    }
+
+    private func latestRun(from runs: [CheckRunDTO]) -> CheckRunDTO? {
+        runs.max(by: { runDate($0) < runDate($1) })
+    }
+
+    private func runDate(_ run: CheckRunDTO) -> Date {
+        run.startedAt ?? run.completedAt ?? .distantPast
+    }
+
+    private func filterComments(_ comments: [PRComment], since: Date?) -> [PRComment] {
+        guard let since else { return comments }
+        return comments.filter { $0.createdAt >= since }
     }
 
     private func normalize(_ value: String) -> String {
