@@ -116,6 +116,8 @@ final class GitHubClient {
             let batch = try decoder.decode([PullRequestReviewDTO].self, from: data)
             comments.append(contentsOf: batch.compactMap { review in
                 guard let submittedAt = review.submittedAt else { return nil }
+                let body = review.body?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                guard !body.isEmpty else { return nil }
                 return PRComment(author: review.user.login, createdAt: submittedAt)
             })
             if batch.count < 100 { break }
@@ -305,11 +307,13 @@ struct PullRequestReviewDTO: Decodable {
     var id: Int
     var user: User
     var submittedAt: Date?
+    var body: String?
 
     enum CodingKeys: String, CodingKey {
         case id
         case user
         case submittedAt = "submitted_at"
+        case body
     }
 }
 

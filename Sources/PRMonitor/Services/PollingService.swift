@@ -18,11 +18,8 @@ final class PollingService {
                 group.addTask {
                     await repoSemaphore.wait()
                     defer { repoSemaphore.signal() }
-                    print("   🔄 Fetching PRs for \(repo.fullName)...")
                     let pulls = try await self.client.fetchOpenPullRequests(repo: repo)
-                    print("   📝 Found \(pulls.count) open PRs in \(repo.fullName)")
                     let prs = try await self.buildPRItems(repo: repo, pulls: pulls, agents: agents)
-                    print("   ✅ Built \(prs.count) PR items for \(repo.fullName)")
                     return RepoSection(fullName: repo.fullName, prs: prs)
                 }
             }
@@ -84,7 +81,7 @@ final class PollingService {
             let commentCount = commentCountForAgent(agent: agent, comments: comments, since: since)
 
             guard let run = bestRun else {
-                let status: AgentRunStatus = commentCount > 0 ? .done : .notFound
+                let status: AgentRunStatus = commentCount > 0 ? .waitingForComment : .notFound
                 return AgentRun(id: agent.id.uuidString, displayName: agent.displayName, status: status, commentCount: commentCount, checkConclusion: nil)
             }
 
