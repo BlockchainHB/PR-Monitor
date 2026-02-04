@@ -19,219 +19,362 @@ struct SettingsView: View {
     var body: some View {
         TabView {
             reposTab
-                .tabItem { Text("Repos") }
+                .tabItem {
+                    Label("Repositories", systemImage: "folder")
+                }
             agentsTab
-                .tabItem { Text("Agents") }
+                .tabItem {
+                    Label("Agents", systemImage: "cpu")
+                }
             authTab
-                .tabItem { Text("Auth") }
+                .tabItem {
+                    Label("Authentication", systemImage: "key")
+                }
             notificationsTab
-                .tabItem { Text("Notifications") }
+                .tabItem {
+                    Label("Notifications", systemImage: "bell")
+                }
         }
-        .padding(16)
-        .frame(width: 640, height: 420)
-        .onAppear {
-            activateForSettings()
-        }
-        .onDisappear {
-            NSApp.setActivationPolicy(.accessory)
-        }
+        .padding(20)
+        .frame(width: 600, height: 500)
     }
 
     private var reposTab: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Tracked Repositories")
-                .font(.headline)
-            HStack {
-                TextField("owner/name", text: $newRepoText)
-                    .textFieldStyle(.roundedBorder)
-                Button("Add") {
-                    if settings.addRepo(from: newRepoText) != nil {
-                        newRepoText = ""
-                    }
-                }
-            }
-
-            List {
-                ForEach($settings.repos) { $repo in
-                    HStack {
-                        Toggle(repo.fullName, isOn: $repo.isEnabled)
-                            .toggleStyle(.checkbox)
-                        Spacer()
-                        Button(role: .destructive) {
-                            settings.repos.removeAll { $0.id == repo.id }
-                        } label: {
-                            Image(systemName: "trash")
+        Form {
+            Section {
+                HStack {
+                    TextField("owner/name", text: $newRepoText)
+                        .textFieldStyle(.roundedBorder)
+                    Button("Add") {
+                        if settings.addRepo(from: newRepoText) != nil {
+                            newRepoText = ""
                         }
-                        .buttonStyle(.plain)
                     }
                 }
+            } header: {
+                Text("Add Repository")
             }
 
-            Divider()
+            Section {
+                if settings.repos.isEmpty {
+                    Text("No repositories added")
+                        .foregroundColor(.secondary)
+                } else {
+                    List($settings.repos) { $repo in
+                        Toggle(repo.fullName, isOn: $repo.isEnabled)
+                            .swipeActions(edge: .trailing) {
+                                Button(role: .destructive) {
+                                    settings.repos.removeAll { $0.id == repo.id }
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                    }
+                    .frame(height: 150)
+                }
+            } header: {
+                Text("Tracked Repositories")
+            }
 
-            HStack {
-                Text("GitHub Repos")
-                    .font(.headline)
-                Spacer()
-                Button(isLoadingRepos ? "Loading..." : "Fetch") {
+            Section {
+                Button(isLoadingRepos ? "Loading..." : "Fetch from GitHub") {
                     loadRepos()
                 }
                 .disabled(isLoadingRepos || !authStore.isSignedIn)
-            }
-
-            if let error = repoLoadError {
-                Text(error)
-                    .font(.caption)
-                    .foregroundColor(.red)
-            }
-
-            HStack {
-                Image(systemName: "magnifyingglass")
-                TextField("Filter repos", text: $repoSearch)
-                    .textFieldStyle(.roundedBorder)
-            }
-
-            List(filteredAvailableRepos) { repo in
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(repo.fullName)
-                        if repo.isPrivate {
-                            Text("Private")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    Spacer()
-                    Toggle("Track", isOn: bindingForRepo(repo))
-                        .labelsHidden()
-                }
-            }
-        }
-    }
-
-    private var agentsTab: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Agents")
-                .font(.headline)
-            Text("Map each agent to a check name pattern and comment author login.")
-                .font(.caption)
-                .foregroundColor(.secondary)
-
-            HStack {
-                Button(isDetectingAgents ? "Detecting..." : "Auto-detect from open PRs") {
-                    detectAgents()
-                }
-                .disabled(isDetectingAgents || !authStore.isSignedIn || settings.enabledRepos.isEmpty)
-                Spacer()
-                if settings.enabledRepos.isEmpty {
-                    Text("Enable repos first")
+                
+                if !authStore.isSignedIn {
+                    Text("Sign in required")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-            }
 
-            if let error = agentDetectError {
-                Text(error)
-                    .font(.caption)
-                    .foregroundColor(.red)
-            }
-
-            HStack {
-                TextField("Display name", text: $newAgentName)
-                TextField("Check name contains", text: $newAgentCheckPattern)
-                TextField("Comment author login", text: $newAgentCommentAuthor)
-                Button("Add") {
-                    let agent = AgentConfig(
-                        displayName: newAgentName,
-                        checkNamePattern: newAgentCheckPattern,
-                        commentAuthor: newAgentCommentAuthor
-                    )
-                    guard !agent.displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-                    settings.agents.append(agent)
-                    newAgentName = ""
-                    newAgentCheckPattern = ""
-                    newAgentCommentAuthor = ""
+                if let error = repoLoadError {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                }
+            } header: {
+                Text("Browse GitHub Repositories")
+            } footer: {
+                if !availableRepos.isEmpty {
+                    Text("\(availableRepos.count) repositories available")
+                } else {
+                    Text("Fetch your repositories to add them to tracking")
                 }
             }
-
-            List {
-                ForEach($settings.agents) { $agent in
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            TextField("Display name", text: $agent.displayName)
-                            Button(role: .destructive) {
-                                settings.agents.removeAll { $0.id == agent.id }
+            
+            if !availableRepos.isEmpty {
+                Section {
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(.secondary)
+                        TextField("Search repositories", text: $repoSearch)
+                            .textFieldStyle(.roundedBorder)
+                        if !repoSearch.isEmpty {
+                            Button {
+                                repoSearch = ""
                             } label: {
-                                Image(systemName: "trash")
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.secondary)
                             }
-                            .buttonStyle(.plain)
-                        }
-                        HStack {
-                            TextField("Check name contains", text: $agent.checkNamePattern)
-                            TextField("Comment author login", text: $agent.commentAuthor)
+                            .buttonStyle(.borderless)
                         }
                     }
-                    .padding(.vertical, 6)
+                } header: {
+                    Text("Filter")
+                }
+                
+                Section {
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            ForEach(filteredAvailableRepos) { repo in
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(repo.fullName)
+                                        if repo.isPrivate {
+                                            HStack(spacing: 4) {
+                                                Image(systemName: "lock.fill")
+                                                    .font(.caption2)
+                                                Text("Private")
+                                                    .font(.caption2)
+                                            }
+                                            .foregroundColor(.secondary)
+                                        }
+                                    }
+                                    Spacer()
+                                    Toggle("", isOn: bindingForRepo(repo))
+                                        .labelsHidden()
+                                }
+                                .padding(.vertical, 8)
+                                .padding(.trailing, 8)
+                                Divider()
+                            }
+                        }
+                        .padding(.trailing, 4)
+                    }
+                    .frame(height: 220)
+                } header: {
+                    Text("Available Repositories")
+                } footer: {
+                    if !repoSearch.isEmpty {
+                        Text("Showing \(filteredAvailableRepos.count) of \(availableRepos.count) repositories")
+                    }
                 }
             }
         }
+        .formStyle(.grouped)
+    }
+
+    private var agentsTab: some View {
+        Form {
+            Section {
+                Button(isDetectingAgents ? "Detecting..." : "Auto-detect from Open PRs") {
+                    detectAgents()
+                }
+                .disabled(isDetectingAgents || !authStore.isSignedIn || settings.enabledRepos.isEmpty)
+
+                if let error = agentDetectError {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                } else if settings.enabledRepos.isEmpty {
+                    Text("Enable repositories first")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            } header: {
+                Text("Quick Setup")
+            } footer: {
+                Text("Automatically find agents from your pull requests")
+            }
+
+            if settings.agents.isEmpty {
+                Section {
+                    Text("No agents configured yet")
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding()
+                } header: {
+                    Text("Configured Agents")
+                } footer: {
+                    Text("Each agent monitors specific checks and comments on PRs")
+                }
+            } else {
+                Section {
+                    ScrollView {
+                        VStack(spacing: 12) {
+                            ForEach($settings.agents) { $agent in
+                                VStack(alignment: .leading, spacing: 10) {
+                                    HStack {
+                                        Text(agent.displayName.isEmpty ? "Unnamed Agent" : agent.displayName)
+                                            .font(.headline)
+                                        Spacer()
+                                        Button {
+                                            settings.agents.removeAll { $0.id == agent.id }
+                                        } label: {
+                                            Image(systemName: "trash")
+                                                .foregroundColor(.red)
+                                        }
+                                        .buttonStyle(.borderless)
+                                    }
+                                    
+                                    Divider()
+                                    
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Display Name")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        TextField("e.g., Code Review Bot", text: $agent.displayName)
+                                            .textFieldStyle(.roundedBorder)
+                                    }
+                                    
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Check Name Pattern")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        TextField("e.g., review-bot or CI/Test", text: $agent.checkNamePattern)
+                                            .textFieldStyle(.roundedBorder)
+                                    }
+                                    
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Comment Author Login")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                        TextField("e.g., review-bot[bot]", text: $agent.commentAuthor)
+                                            .textFieldStyle(.roundedBorder)
+                                    }
+                                }
+                                .padding(12)
+                                .background(Color(nsColor: .controlBackgroundColor).opacity(0.5))
+                                .cornerRadius(8)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .frame(height: 240)
+                } header: {
+                    Text("Configured Agents")
+                } footer: {
+                    Text("Each agent monitors specific checks and comments on PRs")
+                        .padding(.top, 4)
+                }
+            }
+
+            Section {
+                VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Display Name")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        TextField("e.g., Code Review Bot", text: $newAgentName)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Check Name Pattern")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        TextField("e.g., review-bot or CI/Test", text: $newAgentCheckPattern)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Comment Author Login")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        TextField("e.g., review-bot[bot]", text: $newAgentCommentAuthor)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    
+                    Button("Add Agent") {
+                        let agent = AgentConfig(
+                            displayName: newAgentName,
+                            checkNamePattern: newAgentCheckPattern,
+                            commentAuthor: newAgentCommentAuthor
+                        )
+                        guard !agent.displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+                        settings.agents.append(agent)
+                        newAgentName = ""
+                        newAgentCheckPattern = ""
+                        newAgentCommentAuthor = ""
+                    }
+                    .disabled(newAgentName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            } header: {
+                Text("Add New Agent")
+            } footer: {
+                Text("Agents match GitHub check runs and comment authors")
+            }
+        }
+        .formStyle(.grouped)
     }
 
     private var authTab: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("GitHub Authentication")
-                .font(.headline)
-
-            HStack {
-                Text("OAuth Client ID")
+        Form {
+            Section {
                 TextField("Client ID", text: $settings.githubClientId)
                     .textFieldStyle(.roundedBorder)
-                    .disabled(false)
+            } header: {
+                Text("GitHub OAuth")
+            } footer: {
+                Text("Create an OAuth app at github.com/settings/developers")
             }
 
-            if authStore.isSignedIn {
-                Text("Signed in.")
-                    .foregroundColor(.secondary)
-                Button("Sign Out") {
-                    authStore.signOut()
-                }
-            } else {
-                Button(authStore.isSigningIn ? "Signing In..." : "Start Device Sign-In") {
-                    authStore.signIn(clientId: settings.githubClientId)
-                }
-                .disabled(authStore.isSigningIn)
-
-                if let flow = authStore.deviceFlow {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Enter this code at GitHub:")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text(flow.userCode)
-                            .font(.system(size: 18, weight: .semibold, design: .monospaced))
-                        Text(flow.verificationURL.absoluteString)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+            Section {
+                if authStore.isSignedIn {
+                    Text("✓ Signed In")
+                        .foregroundColor(.green)
+                    Button("Sign Out") {
+                        authStore.signOut()
                     }
-                    .padding(.top, 6)
-                }
-            }
+                } else {
+                    Button(authStore.isSigningIn ? "Signing In..." : "Sign In with Device Code") {
+                        authStore.signIn(clientId: settings.githubClientId)
+                    }
+                    .disabled(authStore.isSigningIn || settings.githubClientId.isEmpty)
 
-            if let message = authStore.statusMessage {
-                Text(message)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                    if let flow = authStore.deviceFlow {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Enter this code at GitHub:")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text(flow.userCode)
+                                .font(.system(size: 20, weight: .semibold, design: .monospaced))
+                                .textSelection(.enabled)
+                            Button {
+                                NSWorkspace.shared.open(flow.verificationURL)
+                            } label: {
+                                Text("Open GitHub")
+                            }
+                        }
+                    }
+                }
+
+                if let message = authStore.statusMessage {
+                    Text(message)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            } header: {
+                Text("Authentication")
             }
         }
+        .formStyle(.grouped)
     }
 
     private var notificationsTab: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Notifications")
-                .font(.headline)
-            Toggle("Notify when all agents are done", isOn: .constant(true))
-                .disabled(true)
-            Toggle("Notify per agent", isOn: $settings.notifyPerAgent)
+        Form {
+            Section {
+                Toggle("All agents complete", isOn: .constant(true))
+                    .disabled(true)
+                Toggle("Per-agent completion", isOn: $settings.notifyPerAgent)
+            } header: {
+                Text("Notifications")
+            } footer: {
+                Text("Receive notifications when agent checks complete on your PRs")
+            }
         }
+        .formStyle(.grouped)
     }
 
     private var filteredAvailableRepos: [RepoDTO] {
@@ -327,12 +470,6 @@ struct SettingsView: View {
         let allowed = removedBot.filter { $0.isLetter || $0.isNumber }
         return allowed
     }
-
-    private func activateForSettings() {
-        NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true)
-        DispatchQueue.main.async {
-            NSApp.windows.first(where: { $0.isVisible })?.makeKeyAndOrderFront(nil)
-        }
-    }
 }
+
+
