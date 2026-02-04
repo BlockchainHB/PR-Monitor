@@ -27,6 +27,8 @@ struct PRMonitorApp: App {
             SettingsView()
                 .environmentObject(settingsStore)
                 .environmentObject(authStore)
+                .frame(minWidth: 760, minHeight: 520)
         }
+        .windowResizability(.contentSize)
     }
 }
