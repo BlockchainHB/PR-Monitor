@@ -3,3 +3,6 @@
 .DS_Store
 DerivedData
 .firecrawl/
+.DS_Store
+PRMonitor.xcodeproj/project.xcworkspace/
+PRMonitor.xcodeproj/xcuserdata/

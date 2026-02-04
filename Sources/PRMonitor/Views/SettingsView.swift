@@ -158,7 +158,7 @@ private struct GeneralSettingsTab: View {
     private func loadNotificationStatus() {
         guard notificationsAvailable else {
             notificationStatus = .notDetermined
-            notificationStatusDetail = "Notifications unavailable in this build."
+            notificationStatusDetail = "Notifications require running the app bundle (not previews or `swift run`)."
             return
         }
         UNUserNotificationCenter.current().getNotificationSettings { notiSettings in
@@ -184,21 +184,33 @@ private struct GeneralSettingsTab: View {
 
     private func sendTestNotification() {
         guard notificationsAvailable else {
-            notificationStatusDetail = "Notifications unavailable in this build."
+            notificationStatusDetail = "Notifications require running the app bundle (not previews or `swift run`)."
             return
         }
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
             let content = UNMutableNotificationContent()
             content.title = "PR Monitor"
             content.body = "Test notification."
             let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
-            UNUserNotificationCenter.current().add(request)
-            loadNotificationStatus()
+            UNUserNotificationCenter.current().add(request) { addError in
+                Task { @MainActor in
+                    if let error {
+                        self.notificationStatusDetail = "Notification authorization failed: \(error.localizedDescription)"
+                    } else if let addError {
+                        self.notificationStatusDetail = "Notification delivery failed: \(addError.localizedDescription)"
+                    } else if !granted {
+                        self.notificationStatusDetail = "Notifications are blocked. Enable PR Monitor in System Settings > Notifications."
+                    } else {
+                        self.notificationStatusDetail = "Test notification queued."
+                    }
+                    loadNotificationStatus()
+                }
+            }
         }
     }
 
     private var notificationsAvailable: Bool {
-        Bundle.main.bundleURL.pathExtension == "app"
+        NotificationAvailability.isAvailable
     }
 }
 

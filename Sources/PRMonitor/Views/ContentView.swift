@@ -11,6 +11,7 @@ struct ContentView: View {
     @State private var headerHeight: CGFloat = 48
     @State private var footerHeight: CGFloat = 96
     @State private var errorHeight: CGFloat = 0
+    @Environment(\.openSettings) private var openSettings
 
     private let maxPopoverHeight: CGFloat
     private let onSizeChange: ((CGSize) -> Void)?
@@ -51,7 +52,7 @@ struct ContentView: View {
         .onPreferenceChange(ErrorHeightKey.self) { height in
             errorHeight = height
         }
-        .onChange(of: appState.errorMessage) { value in
+        .onChange(of: appState.errorMessage) { _, value in
             if value == nil { errorHeight = 0 }
         }
     }
@@ -152,16 +153,24 @@ struct ContentView: View {
                     .buttonStyle(.plain)
                     .help(isExpanded ? "Hide checks" : "Show checks")
 
-                    Text("#\(pr.number)")
-                        .font(.callout.weight(.semibold))
-                        .monospacedDigit()
-                    Text(pr.title)
-                        .font(.callout)
-                        .lineLimit(1)
+                    Button {
+                        openPR(pr.url)
+                    } label: {
+                        HStack(spacing: 8) {
+                            Text("#\(pr.number)")
+                                .font(.callout.weight(.semibold))
+                                .monospacedDigit()
+                            Text(pr.title)
+                                .font(.callout)
+                                .lineLimit(1)
 
-                    Spacer(minLength: 12)
+                            Spacer(minLength: 12)
 
-                    StatusPill(status: prStatus(pr))
+                            StatusPill(status: prStatus(pr))
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                 }
 
                 Text("by \(pr.author)")
@@ -191,10 +200,6 @@ struct ContentView: View {
                 .strokeBorder(isHovered ? Color.primary.opacity(0.12) : Color.clear, lineWidth: 1)
         )
         .animation(.easeInOut(duration: 0.15), value: isHovered)
-        .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .onTapGesture {
-            openPR(pr.url)
-        }
         .onHover { hovering in
             let key = prKey(pr)
             if hovering {
@@ -275,7 +280,7 @@ struct ContentView: View {
                 })
             } else {
                 Button("Open Settings") {
-                    openSettings()
+                    openSettingsWindow()
                 }
             }
         }
@@ -332,7 +337,7 @@ struct ContentView: View {
                 })
             } else {
                 Button {
-                    openSettings()
+                    openSettingsWindow()
                 } label: {
                     menuRowLabel(id: "settings", title: "Settings…", systemImage: "gearshape")
                 }
@@ -410,8 +415,8 @@ struct ContentView: View {
     }
 
 
-    private func openSettings() {
-        NSApp.sendAction(Selector("showSettingsWindow:"), to: nil, from: nil)
+    private func openSettingsWindow() {
+        openSettings()
     }
 
     private func openPR(_ url: URL) {

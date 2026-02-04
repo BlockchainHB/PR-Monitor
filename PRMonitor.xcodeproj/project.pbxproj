@@ -7,6 +7,8 @@
 
 /* Begin PBXBuildFile section */
 		E78001FF98C94430914E3452 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 644B97B8997741949754A68A /* AppState.swift */; };
+		15959AE2390540B99403139D /* AppContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E57E6F658EA45F4B979C3D9 /* AppContainer.swift */; };
+		EDE587C69327413FBA9D38CF /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24AA8850953C48EDAAD41B17 /* AppDelegate.swift */; };
 		C81F744096B1432F83862A30 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = E41321BCAFB241DFB313FFB7 /* Models.swift */; };
 		13C7ECCDEF914D8DBF807163 /* AuthStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 413A2C3EDF1546099B4C72A2 /* AuthStore.swift */; };
 		EBCC62C2C5B34586A521C976 /* PRMonitorApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD45E48815F141A6B513D4AB /* PRMonitorApp.swift */; };
@@ -19,10 +21,15 @@
 		2B2CF529A7BA41E5872AA6CA /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE6D4B45EC54442DB0A2651A /* SettingsView.swift */; };
 		F955FE0C5D654AEAACD52716 /* StatusBarLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FC0E16936A04FB38789F708 /* StatusBarLabel.swift */; };
 		A59AA7B44EF04C259F3206C7 /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25E35C5AFA7A4856A6D34417 /* Keychain.swift */; };
+		04EF92D31DD2400498021472 /* NotificationAvailability.swift in Sources */ = {isa = PBXBuildFile; fileRef = E175404F860C44A2A03CEBD1 /* NotificationAvailability.swift */; };
+		21412E8064C44708B0B2572B /* AsyncSemaphore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAACAA854D574B38AA46BA8B /* AsyncSemaphore.swift */; };
+		18B26F6E773140D48D1FA579 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9B38857DE80F466587191E51 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		644B97B8997741949754A68A /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PRMonitor/AppState.swift; sourceTree = "<group>"; };
+		9E57E6F658EA45F4B979C3D9 /* AppContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PRMonitor/AppContainer.swift; sourceTree = "<group>"; };
+		24AA8850953C48EDAAD41B17 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PRMonitor/AppDelegate.swift; sourceTree = "<group>"; };
 		E41321BCAFB241DFB313FFB7 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PRMonitor/Models.swift; sourceTree = "<group>"; };
 		413A2C3EDF1546099B4C72A2 /* AuthStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PRMonitor/AuthStore.swift; sourceTree = "<group>"; };
 		BD45E48815F141A6B513D4AB /* PRMonitorApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PRMonitor/PRMonitorApp.swift; sourceTree = "<group>"; };
@@ -35,7 +42,10 @@
 		CE6D4B45EC54442DB0A2651A /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		5FC0E16936A04FB38789F708 /* StatusBarLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarLabel.swift; sourceTree = "<group>"; };
 		25E35C5AFA7A4856A6D34417 /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
+		E175404F860C44A2A03CEBD1 /* NotificationAvailability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationAvailability.swift; sourceTree = "<group>"; };
+		FAACAA854D574B38AA46BA8B /* AsyncSemaphore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncSemaphore.swift; sourceTree = "<group>"; };
 		BE82754E576844E0A75D679A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		9B38857DE80F466587191E51 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		F26C8741A0154CC9B8207228 /* PRMonitor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; path = PRMonitor.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -51,6 +61,8 @@
 		); sourceTree = "<group>"; };
 		B6C4D3D82B3B4CB09464BC29 /* Sources */ = {isa = PBXGroup; children = (
 			644B97B8997741949754A68A /* AppState.swift */,
+			9E57E6F658EA45F4B979C3D9 /* AppContainer.swift */,
+			24AA8850953C48EDAAD41B17 /* AppDelegate.swift */,
 			E41321BCAFB241DFB313FFB7 /* Models.swift */,
 			413A2C3EDF1546099B4C72A2 /* AuthStore.swift */,
 			BD45E48815F141A6B513D4AB /* PRMonitorApp.swift */,
@@ -72,9 +84,12 @@
 		); path = PRMonitor/Views; sourceTree = "<group>"; };
 		3539254D397E4BD08F055DB0 /* Utils */ = {isa = PBXGroup; children = (
 			25E35C5AFA7A4856A6D34417 /* Keychain.swift */,
+			E175404F860C44A2A03CEBD1 /* NotificationAvailability.swift */,
+			FAACAA854D574B38AA46BA8B /* AsyncSemaphore.swift */,
 		); path = PRMonitor/Utils; sourceTree = "<group>"; };
 		B1E89D8E49C549CBB940A2EF /* Supporting Files */ = {isa = PBXGroup; children = (
 			BE82754E576844E0A75D679A /* Info.plist */,
+			9B38857DE80F466587191E51 /* Assets.xcassets */,
 		); path = PRMonitorApp; sourceTree = "<group>"; };
 		61B302BF2D9B4FEB9FF5612D /* Products */ = {isa = PBXGroup; children = (
 			F26C8741A0154CC9B8207228 /* PRMonitor.app */,
@@ -117,12 +132,16 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		DEBA56F4DFE0448DA21C1C74 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = ( ); runOnlyForDeploymentPostprocessing = 0; };
+		DEBA56F4DFE0448DA21C1C74 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (
+			18B26F6E773140D48D1FA579 /* Assets.xcassets in Resources */,
+		); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		C1E3CDF3C7594BDFBA83AFA5 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (
 			E78001FF98C94430914E3452 /* AppState.swift in Sources */,
+			15959AE2390540B99403139D /* AppContainer.swift in Sources */,
+			EDE587C69327413FBA9D38CF /* AppDelegate.swift in Sources */,
 			C81F744096B1432F83862A30 /* Models.swift in Sources */,
 			13C7ECCDEF914D8DBF807163 /* AuthStore.swift in Sources */,
 			EBCC62C2C5B34586A521C976 /* PRMonitorApp.swift in Sources */,
@@ -135,7 +154,9 @@
 			2B2CF529A7BA41E5872AA6CA /* SettingsView.swift in Sources */,
 			F955FE0C5D654AEAACD52716 /* StatusBarLabel.swift in Sources */,
 			A59AA7B44EF04C259F3206C7 /* Keychain.swift in Sources */,
-		); runOnlyForDeploymentPostprocessing = 0; }};
+			04EF92D31DD2400498021472 /* NotificationAvailability.swift in Sources */,
+			21412E8064C44708B0B2572B /* AsyncSemaphore.swift in Sources */,
+		); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
@@ -163,7 +184,7 @@
 			MACOSX_DEPLOYMENT_TARGET = 14.0;
 			ONLY_ACTIVE_ARCH = YES;
 			SWIFT_VERSION = 5.9;
-		}; name = Debug; }};
+		}; name = Debug; };
 		B9C0175094F6499B9883ACCB /* Release */ = {isa = XCBuildConfiguration; buildSettings = {
 			ALWAYS_SEARCH_USER_PATHS = NO;
 			CLANG_ANALYZER_NONNULL = YES;
@@ -187,15 +208,16 @@
 			GCC_WARN_UNUSED_VARIABLE = YES;
 			MACOSX_DEPLOYMENT_TARGET = 14.0;
 			SWIFT_VERSION = 5.9;
-		}; name = Release; }};
+		}; name = Release; };
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
 		0F5F1E2EB3EA4FFFB0A495EA /* Build configuration list for PBXProject "PRMonitor" */ = {isa = XCConfigurationList; buildConfigurations = (
 			694531622C7247A0A73EC18D /* Debug */,
 			B9C0175094F6499B9883ACCB /* Release */,
-		); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; }};
+		); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 		058B0DAC786B4CEA8F9E63B9 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {
+			ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 			CODE_SIGN_STYLE = Automatic;
 			DEVELOPMENT_TEAM = "";
 			INFOPLIST_FILE = PRMonitorApp/Info.plist;
@@ -204,8 +226,9 @@
 			PRODUCT_BUNDLE_IDENTIFIER = com.neat.prmonitor;
 			PRODUCT_NAME = PRMonitor;
 			SWIFT_VERSION = 5.9;
-		}; name = Debug; }};
+		}; name = Debug; };
 		2AA8CDDE90EB40FDB6B4C070 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {
+			ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 			CODE_SIGN_STYLE = Automatic;
 			DEVELOPMENT_TEAM = "";
 			INFOPLIST_FILE = PRMonitorApp/Info.plist;
@@ -214,11 +237,11 @@
 			PRODUCT_BUNDLE_IDENTIFIER = com.neat.prmonitor;
 			PRODUCT_NAME = PRMonitor;
 			SWIFT_VERSION = 5.9;
-		}; name = Release; }};
+		}; name = Release; };
 		9A86AFB97DAE466FA0011B01 /* Build configuration list for PBXNativeTarget "PRMonitor" */ = {isa = XCConfigurationList; buildConfigurations = (
 			058B0DAC786B4CEA8F9E63B9 /* Debug */,
 			2AA8CDDE90EB40FDB6B4C070 /* Release */,
-		); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; }};
+		); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 /* End XCConfigurationList section */
 
 	};

@@ -258,7 +258,7 @@ final class AppState: ObservableObject {
     }
 
     private var notificationsAvailable: Bool {
-        Bundle.main.bundleURL.pathExtension == "app"
+        NotificationAvailability.isAvailable
     }
 
     private func updateTimerInterval(hasOpenPRs: Bool) {
@@ -285,7 +285,9 @@ final class AppState: ObservableObject {
         activeInterval = targetInterval
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: targetInterval, repeats: true) { [weak self] _ in
-            self?.refreshNow()
+            Task { @MainActor in
+                self?.refreshNow()
+            }
         }
     }
 
@@ -298,7 +300,9 @@ final class AppState: ObservableObject {
         activeInterval = delay
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: delay, repeats: true) { [weak self] _ in
-            self?.refreshNow()
+            Task { @MainActor in
+                self?.refreshNow()
+            }
         }
     }
 }

@@ -1,9 +1,10 @@
 import AppKit
 import Combine
 import SwiftUI
+import UserNotifications
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     var container: AppContainer?
 
     private let popover = NSPopover()
@@ -17,9 +18,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let container else { return }
 
         NSApp.setActivationPolicy(.accessory)
+        UNUserNotificationCenter.current().delegate = self
         setupStatusItem()
         setupPopover(container: container)
         bindStatusUpdates(container: container)
+    }
+
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
+        [.banner, .sound, .list]
     }
 
     @objc private func togglePopover(_ sender: Any?) {
