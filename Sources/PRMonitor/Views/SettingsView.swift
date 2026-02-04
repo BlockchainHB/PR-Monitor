@@ -18,6 +18,10 @@ struct SettingsView: View {
 
     var body: some View {
         TabView {
+            generalTab
+                .tabItem {
+                    Label("General", systemImage: "gearshape")
+                }
             reposTab
                 .tabItem {
                     Label("Repositories", systemImage: "folder")
@@ -39,17 +43,39 @@ struct SettingsView: View {
         .frame(width: 600, height: 500)
     }
 
+    private var generalTab: some View {
+        Form {
+            Section {
+                Picker("Polling Interval", selection: $settings.pollingIntervalSeconds) {
+                    Text("30 seconds").tag(30)
+                    Text("1 minute").tag(60)
+                    Text("2 minutes").tag(120)
+                    Text("5 minutes").tag(300)
+                }
+                .pickerStyle(.segmented)
+            } header: {
+                Text("Refresh")
+            } footer: {
+                Text("When no open PRs are found, refreshes every 10 minutes.")
+            }
+        }
+        .formStyle(.grouped)
+    }
+
     private var reposTab: some View {
         Form {
             Section {
                 HStack {
                     TextField("owner/name", text: $newRepoText)
                         .textFieldStyle(.roundedBorder)
-                    Button("Add") {
-                        if settings.addRepo(from: newRepoText) != nil {
-                            newRepoText = ""
+                        .disableAutocorrection(true)
+                        .onSubmit {
+                            addRepo()
                         }
+                    Button("Add") {
+                        addRepo()
                     }
+                    .disabled(!canAddRepo)
                 }
             } header: {
                 Text("Add Repository")
@@ -60,15 +86,18 @@ struct SettingsView: View {
                     Text("No repositories added")
                         .foregroundColor(.secondary)
                 } else {
-                    List($settings.repos) { $repo in
-                        Toggle(repo.fullName, isOn: $repo.isEnabled)
-                            .swipeActions(edge: .trailing) {
-                                Button(role: .destructive) {
-                                    settings.repos.removeAll { $0.id == repo.id }
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
+                    List {
+                        ForEach($settings.repos) { $repo in
+                            Toggle(repo.fullName, isOn: $repo.isEnabled)
+                                .contextMenu {
+                                    Button("Remove", role: .destructive) {
+                                        settings.repos.removeAll { $0.id == repo.id }
+                                    }
                                 }
-                            }
+                        }
+                        .onDelete { indexSet in
+                            settings.repos.remove(atOffsets: indexSet)
+                        }
                     }
                     .frame(height: 150)
                 }
@@ -77,8 +106,17 @@ struct SettingsView: View {
             }
 
             Section {
-                Button(isLoadingRepos ? "Loading..." : "Fetch from GitHub") {
+                Button {
                     loadRepos()
+                } label: {
+                    if isLoadingRepos {
+                        HStack(spacing: 8) {
+                            ProgressView()
+                            Text("Fetching repositories...")
+                        }
+                    } else {
+                        Label("Fetch from GitHub", systemImage: "arrow.down.circle")
+                    }
                 }
                 .disabled(isLoadingRepos || !authStore.isSignedIn)
                 
@@ -125,33 +163,28 @@ struct SettingsView: View {
                 }
                 
                 Section {
-                    ScrollView {
-                        LazyVStack(spacing: 0) {
-                            ForEach(filteredAvailableRepos) { repo in
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(repo.fullName)
-                                        if repo.isPrivate {
-                                            HStack(spacing: 4) {
-                                                Image(systemName: "lock.fill")
-                                                    .font(.caption2)
-                                                Text("Private")
-                                                    .font(.caption2)
-                                            }
-                                            .foregroundColor(.secondary)
+                    List {
+                        ForEach(filteredAvailableRepos) { repo in
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(repo.fullName)
+                                    if repo.isPrivate {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "lock.fill")
+                                                .font(.caption2)
+                                            Text("Private")
+                                                .font(.caption2)
                                         }
+                                        .foregroundColor(.secondary)
                                     }
-                                    Spacer()
-                                    Toggle("", isOn: bindingForRepo(repo))
-                                        .labelsHidden()
                                 }
-                                .padding(.vertical, 8)
-                                .padding(.trailing, 8)
-                                Divider()
+                                Spacer()
+                                Toggle("", isOn: bindingForRepo(repo))
+                                    .labelsHidden()
                             }
                         }
-                        .padding(.trailing, 4)
                     }
+                    .listStyle(.inset)
                     .frame(height: 220)
                 } header: {
                     Text("Available Repositories")
@@ -168,8 +201,17 @@ struct SettingsView: View {
     private var agentsTab: some View {
         Form {
             Section {
-                Button(isDetectingAgents ? "Detecting..." : "Auto-detect from Open PRs") {
+                Button {
                     detectAgents()
+                } label: {
+                    if isDetectingAgents {
+                        HStack(spacing: 8) {
+                            ProgressView()
+                            Text("Detecting agents...")
+                        }
+                    } else {
+                        Label("Auto-detect from Open PRs", systemImage: "sparkles")
+                    }
                 }
                 .disabled(isDetectingAgents || !authStore.isSignedIn || settings.enabledRepos.isEmpty)
 
@@ -314,6 +356,7 @@ struct SettingsView: View {
             Section {
                 TextField("Client ID", text: $settings.githubClientId)
                     .textFieldStyle(.roundedBorder)
+                    .disableAutocorrection(true)
             } header: {
                 Text("GitHub OAuth")
             } footer: {
@@ -394,6 +437,18 @@ struct SettingsView: View {
         )
     }
 
+    private var canAddRepo: Bool {
+        let trimmed = newRepoText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let parts = trimmed.split(separator: "/")
+        return parts.count == 2 && !parts[0].isEmpty && !parts[1].isEmpty
+    }
+
+    private func addRepo() {
+        if settings.addRepo(from: newRepoText) != nil {
+            newRepoText = ""
+        }
+    }
+
     private func loadRepos() {
         guard authStore.isSignedIn else {
             repoLoadError = "Sign in to fetch repos."
@@ -471,5 +526,3 @@ struct SettingsView: View {
         return allowed
     }
 }
-
-
