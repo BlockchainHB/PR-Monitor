@@ -1,0 +1,226 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		E78001FF98C94430914E3452 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 644B97B8997741949754A68A /* AppState.swift */; };
+		C81F744096B1432F83862A30 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = E41321BCAFB241DFB313FFB7 /* Models.swift */; };
+		13C7ECCDEF914D8DBF807163 /* AuthStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 413A2C3EDF1546099B4C72A2 /* AuthStore.swift */; };
+		EBCC62C2C5B34586A521C976 /* PRMonitorApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD45E48815F141A6B513D4AB /* PRMonitorApp.swift */; };
+		F00A6865B87A40E5B85807DC /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AC1C54FD8F744D7BC7724C4 /* SettingsStore.swift */; };
+		A2F9F4DDB63541AB8ED0D49F /* GitHubAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B8E907DD122457981820397 /* GitHubAuthService.swift */; };
+		7908E85144FF431C91A2C19D /* GitHubClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC78B421D3F245CD8C9084F2 /* GitHubClient.swift */; };
+		37C9B0CA60AC4DA2ABBEE840 /* PollingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B6023855E984BBB8E37A6B2 /* PollingService.swift */; };
+		26E46E9EFB13490389EE6EF0 /* AgentDiscoveryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC9AFC7C7C074F23A5140BDC /* AgentDiscoveryService.swift */; };
+		1EFB51EBC5C14510AC627101 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 958903B9354348848EBA9948 /* ContentView.swift */; };
+		2B2CF529A7BA41E5872AA6CA /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE6D4B45EC54442DB0A2651A /* SettingsView.swift */; };
+		F955FE0C5D654AEAACD52716 /* StatusBarLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FC0E16936A04FB38789F708 /* StatusBarLabel.swift */; };
+		A59AA7B44EF04C259F3206C7 /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25E35C5AFA7A4856A6D34417 /* Keychain.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		644B97B8997741949754A68A /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PRMonitor/AppState.swift; sourceTree = "<group>"; };
+		E41321BCAFB241DFB313FFB7 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PRMonitor/Models.swift; sourceTree = "<group>"; };
+		413A2C3EDF1546099B4C72A2 /* AuthStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PRMonitor/AuthStore.swift; sourceTree = "<group>"; };
+		BD45E48815F141A6B513D4AB /* PRMonitorApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PRMonitor/PRMonitorApp.swift; sourceTree = "<group>"; };
+		5AC1C54FD8F744D7BC7724C4 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PRMonitor/SettingsStore.swift; sourceTree = "<group>"; };
+		4B8E907DD122457981820397 /* GitHubAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubAuthService.swift; sourceTree = "<group>"; };
+		BC78B421D3F245CD8C9084F2 /* GitHubClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubClient.swift; sourceTree = "<group>"; };
+		9B6023855E984BBB8E37A6B2 /* PollingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollingService.swift; sourceTree = "<group>"; };
+		CC9AFC7C7C074F23A5140BDC /* AgentDiscoveryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentDiscoveryService.swift; sourceTree = "<group>"; };
+		958903B9354348848EBA9948 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		CE6D4B45EC54442DB0A2651A /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		5FC0E16936A04FB38789F708 /* StatusBarLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarLabel.swift; sourceTree = "<group>"; };
+		25E35C5AFA7A4856A6D34417 /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
+		BE82754E576844E0A75D679A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		F26C8741A0154CC9B8207228 /* PRMonitor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; path = PRMonitor.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		E4BDE8E1FE6C42328C5F474D /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = ( ); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		2224E7031C304D109D5C94C2 = {isa = PBXGroup; children = (
+			B6C4D3D82B3B4CB09464BC29 /* Sources */,
+			B1E89D8E49C549CBB940A2EF /* Supporting Files */,
+			61B302BF2D9B4FEB9FF5612D /* Products */,
+		); sourceTree = "<group>"; };
+		B6C4D3D82B3B4CB09464BC29 /* Sources */ = {isa = PBXGroup; children = (
+			644B97B8997741949754A68A /* AppState.swift */,
+			E41321BCAFB241DFB313FFB7 /* Models.swift */,
+			413A2C3EDF1546099B4C72A2 /* AuthStore.swift */,
+			BD45E48815F141A6B513D4AB /* PRMonitorApp.swift */,
+			5AC1C54FD8F744D7BC7724C4 /* SettingsStore.swift */,
+			17846063536D41B3A76A70B6 /* Services */,
+			D37FB8FDF77444F08B535242 /* Views */,
+			3539254D397E4BD08F055DB0 /* Utils */,
+		); path = Sources; sourceTree = "<group>"; };
+		17846063536D41B3A76A70B6 /* Services */ = {isa = PBXGroup; children = (
+			4B8E907DD122457981820397 /* GitHubAuthService.swift */,
+			BC78B421D3F245CD8C9084F2 /* GitHubClient.swift */,
+			9B6023855E984BBB8E37A6B2 /* PollingService.swift */,
+			CC9AFC7C7C074F23A5140BDC /* AgentDiscoveryService.swift */,
+		); path = PRMonitor/Services; sourceTree = "<group>"; };
+		D37FB8FDF77444F08B535242 /* Views */ = {isa = PBXGroup; children = (
+			958903B9354348848EBA9948 /* ContentView.swift */,
+			CE6D4B45EC54442DB0A2651A /* SettingsView.swift */,
+			5FC0E16936A04FB38789F708 /* StatusBarLabel.swift */,
+		); path = PRMonitor/Views; sourceTree = "<group>"; };
+		3539254D397E4BD08F055DB0 /* Utils */ = {isa = PBXGroup; children = (
+			25E35C5AFA7A4856A6D34417 /* Keychain.swift */,
+		); path = PRMonitor/Utils; sourceTree = "<group>"; };
+		B1E89D8E49C549CBB940A2EF /* Supporting Files */ = {isa = PBXGroup; children = (
+			BE82754E576844E0A75D679A /* Info.plist */,
+		); path = PRMonitorApp; sourceTree = "<group>"; };
+		61B302BF2D9B4FEB9FF5612D /* Products */ = {isa = PBXGroup; children = (
+			F26C8741A0154CC9B8207228 /* PRMonitor.app */,
+		); name = Products; sourceTree = "<group>"; };
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		6442782EE46E4562B845764C /* PRMonitor */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9A86AFB97DAE466FA0011B01 /* Build configuration list for PBXNativeTarget "PRMonitor" */;
+			buildPhases = (
+				C1E3CDF3C7594BDFBA83AFA5 /* Sources */,
+				E4BDE8E1FE6C42328C5F474D /* Frameworks */,
+				DEBA56F4DFE0448DA21C1C74 /* Resources */,
+			);
+			buildRules = ( );
+			dependencies = ( );
+			name = PRMonitor;
+			productName = PRMonitor;
+			productReference = F26C8741A0154CC9B8207228 /* PRMonitor.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		B159222AAE91467BB5C40600 /* Project object */ = {
+			isa = PBXProject;
+			buildConfigurationList = 0F5F1E2EB3EA4FFFB0A495EA /* Build configuration list for PBXProject "PRMonitor" */;
+			compatibilityVersion = "Xcode 13.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			mainGroup = 2224E7031C304D109D5C94C2;
+			productRefGroup = 61B302BF2D9B4FEB9FF5612D;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				6442782EE46E4562B845764C /* PRMonitor */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		DEBA56F4DFE0448DA21C1C74 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = ( ); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		C1E3CDF3C7594BDFBA83AFA5 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (
+			E78001FF98C94430914E3452 /* AppState.swift in Sources */,
+			C81F744096B1432F83862A30 /* Models.swift in Sources */,
+			13C7ECCDEF914D8DBF807163 /* AuthStore.swift in Sources */,
+			EBCC62C2C5B34586A521C976 /* PRMonitorApp.swift in Sources */,
+			F00A6865B87A40E5B85807DC /* SettingsStore.swift in Sources */,
+			A2F9F4DDB63541AB8ED0D49F /* GitHubAuthService.swift in Sources */,
+			7908E85144FF431C91A2C19D /* GitHubClient.swift in Sources */,
+			37C9B0CA60AC4DA2ABBEE840 /* PollingService.swift in Sources */,
+			26E46E9EFB13490389EE6EF0 /* AgentDiscoveryService.swift in Sources */,
+			1EFB51EBC5C14510AC627101 /* ContentView.swift in Sources */,
+			2B2CF529A7BA41E5872AA6CA /* SettingsView.swift in Sources */,
+			F955FE0C5D654AEAACD52716 /* StatusBarLabel.swift in Sources */,
+			A59AA7B44EF04C259F3206C7 /* Keychain.swift in Sources */,
+		); runOnlyForDeploymentPostprocessing = 0; }};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		694531622C7247A0A73EC18D /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {
+			ALWAYS_SEARCH_USER_PATHS = NO;
+			CLANG_ANALYZER_NONNULL = YES;
+			CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+			CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+			CLANG_CXX_LIBRARY = "libc++";
+			CLANG_ENABLE_OBJC_WEAK = YES;
+			CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+			CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+			CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+			CLANG_WARN_UNREACHABLE_CODE = YES;
+			CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+			DEVELOPMENT_TEAM = "";
+			ENABLE_STRICT_OBJC_MSGSEND = YES;
+			GCC_C_LANGUAGE_STANDARD = "gnu11";
+			GCC_NO_COMMON_BLOCKS = YES;
+			GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+			GCC_WARN_UNDECLARED_SELECTOR = YES;
+			GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+			GCC_WARN_UNUSED_FUNCTION = YES;
+			GCC_WARN_UNUSED_VARIABLE = YES;
+			MACOSX_DEPLOYMENT_TARGET = 14.0;
+			ONLY_ACTIVE_ARCH = YES;
+			SWIFT_VERSION = 5.9;
+		}; name = Debug; }};
+		B9C0175094F6499B9883ACCB /* Release */ = {isa = XCBuildConfiguration; buildSettings = {
+			ALWAYS_SEARCH_USER_PATHS = NO;
+			CLANG_ANALYZER_NONNULL = YES;
+			CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+			CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+			CLANG_CXX_LIBRARY = "libc++";
+			CLANG_ENABLE_OBJC_WEAK = YES;
+			CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+			CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+			CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+			CLANG_WARN_UNREACHABLE_CODE = YES;
+			CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+			DEVELOPMENT_TEAM = "";
+			ENABLE_STRICT_OBJC_MSGSEND = YES;
+			GCC_C_LANGUAGE_STANDARD = "gnu11";
+			GCC_NO_COMMON_BLOCKS = YES;
+			GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+			GCC_WARN_UNDECLARED_SELECTOR = YES;
+			GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+			GCC_WARN_UNUSED_FUNCTION = YES;
+			GCC_WARN_UNUSED_VARIABLE = YES;
+			MACOSX_DEPLOYMENT_TARGET = 14.0;
+			SWIFT_VERSION = 5.9;
+		}; name = Release; }};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0F5F1E2EB3EA4FFFB0A495EA /* Build configuration list for PBXProject "PRMonitor" */ = {isa = XCConfigurationList; buildConfigurations = (
+			694531622C7247A0A73EC18D /* Debug */,
+			B9C0175094F6499B9883ACCB /* Release */,
+		); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; }};
+		058B0DAC786B4CEA8F9E63B9 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {
+			CODE_SIGN_STYLE = Automatic;
+			DEVELOPMENT_TEAM = "";
+			INFOPLIST_FILE = PRMonitorApp/Info.plist;
+			LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks");
+			MACOSX_DEPLOYMENT_TARGET = 14.0;
+			PRODUCT_BUNDLE_IDENTIFIER = com.neat.prmonitor;
+			PRODUCT_NAME = PRMonitor;
+			SWIFT_VERSION = 5.9;
+		}; name = Debug; }};
+		2AA8CDDE90EB40FDB6B4C070 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {
+			CODE_SIGN_STYLE = Automatic;
+			DEVELOPMENT_TEAM = "";
+			INFOPLIST_FILE = PRMonitorApp/Info.plist;
+			LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/../Frameworks");
+			MACOSX_DEPLOYMENT_TARGET = 14.0;
+			PRODUCT_BUNDLE_IDENTIFIER = com.neat.prmonitor;
+			PRODUCT_NAME = PRMonitor;
+			SWIFT_VERSION = 5.9;
+		}; name = Release; }};
+		9A86AFB97DAE466FA0011B01 /* Build configuration list for PBXNativeTarget "PRMonitor" */ = {isa = XCConfigurationList; buildConfigurations = (
+			058B0DAC786B4CEA8F9E63B9 /* Debug */,
+			2AA8CDDE90EB40FDB6B4C070 /* Release */,
+		); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; }};
+/* End XCConfigurationList section */
+
+	};
+	rootObject = B159222AAE91467BB5C40600 /* Project object */;
+}
