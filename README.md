@@ -1,5 +1,4 @@
-# PR Monitor (Menu Bar)
-
+# PR Monitor 
 Monitor multi-agent PR checks and review comments from your macOS menu bar — no tab switching.
 
 PR Monitor is built for teams using multiple PR-review agents and CI systems. It keeps track of check runs and agent comments across your repositories and tells you when everything is ready for review, so you can respond in one focused pass.
@@ -18,11 +17,8 @@ With multiple agent reviewers running in parallel, it’s easy to get stuck cont
 
 ## Screenshots
 
-![Menu bar popover](docs/screenshots/menubar-popover.png)
-![Settings: General](docs/screenshots/settings-general.png)
-![Settings: Repositories](docs/screenshots/settings-repos.png)
-![Settings: Agents](docs/screenshots/settings-agents.png)
-![Notification example](docs/screenshots/notification-example.png)
+<img width="1298" height="940" alt="CleanShot 2026-02-04 at 14 43 13@2x" src="https://github.com/user-attachments/assets/e1a9c754-a1ee-4ad0-bdbd-b65918e362f4" />
+<img width="1298" height="940" alt="CleanShot 2026-02-04 at 14 43 13@2x" src="https://github.com/user-attachments/assets/e1a9c754-a1ee-4ad0-bdbd-b65918e362f4" />
 
 ## Quick Start
 
