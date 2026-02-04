@@ -16,8 +16,9 @@ With multiple agent reviewers running in parallel, it’s easy to get stuck cont
 - Get notified when reviews are ready
 
 ## Screenshots
-
-<img width="400" height="500" alt="CleanShot 2026-02-04 at 14 43 13@2x" src="https://github.com/user-attachments/assets/e1a9c754-a1ee-4ad0-bdbd-b65918e362f4" />
+<p align="center">
+<img width="600" height="700" alt="CleanShot 2026-02-04 at 14 43 13@2x" src="https://github.com/user-attachments/assets/e1a9c754-a1ee-4ad0-bdbd-b65918e362f4" />
+</p>
 
 ## Quick Start
 
