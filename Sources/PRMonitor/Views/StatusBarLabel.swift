@@ -11,6 +11,8 @@ struct StatusBarLabel: View {
             return .gray
         case .running:
             return .blue
+        case .failed:
+            return .red
         case .waiting:
             return .orange
         case .done:
@@ -26,6 +28,8 @@ struct StatusBarLabel: View {
             return "Idle"
         case .running:
             return "Running"
+        case .failed:
+            return "Failed"
         case .waiting:
             return "Waiting"
         case .done:

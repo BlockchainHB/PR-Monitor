@@ -30,19 +30,30 @@ final class GitHubClient {
     private let session: URLSession
     private let tokenProvider: () -> String?
     private let decoder: JSONDecoder
+    private let pathSegmentAllowedCharacters: CharacterSet
 
     init(session: URLSession = .shared, tokenProvider: @escaping () -> String?) {
         self.session = session
         self.tokenProvider = tokenProvider
         self.decoder = JSONDecoder()
         self.decoder.dateDecodingStrategy = .iso8601
+        var allowed = CharacterSet.urlPathAllowed
+        allowed.remove(charactersIn: "/")
+        self.pathSegmentAllowedCharacters = allowed
     }
 
     func fetchOpenPullRequests(repo: RepoConfig) async throws -> [PullRequestDTO] {
         var page = 1
         var pulls: [PullRequestDTO] = []
         while true {
-            let url = URL(string: "https://api.github.com/repos/\(repo.owner)/\(repo.name)/pulls?state=open&per_page=100&page=\(page)")!
+            let url = try apiURL(
+                pathSegments: ["repos", repo.owner, repo.name, "pulls"],
+                queryItems: [
+                    URLQueryItem(name: "state", value: "open"),
+                    URLQueryItem(name: "per_page", value: "100"),
+                    URLQueryItem(name: "page", value: String(page))
+                ]
+            )
             let request = try makeRequest(url: url)
             let (data, response) = try await session.data(for: request)
             try validate(response: response)
@@ -59,7 +70,14 @@ final class GitHubClient {
         var runs: [CheckRunDTO] = []
         var totalCount: Int?
         while true {
-            let url = URL(string: "https://api.github.com/repos/\(owner)/\(repo)/commits/\(sha)/check-runs?per_page=100&page=\(page)&filter=latest")!
+            let url = try apiURL(
+                pathSegments: ["repos", owner, repo, "commits", sha, "check-runs"],
+                queryItems: [
+                    URLQueryItem(name: "per_page", value: "100"),
+                    URLQueryItem(name: "page", value: String(page)),
+                    URLQueryItem(name: "filter", value: "latest")
+                ]
+            )
             let request = try makeRequest(url: url)
             let (data, response) = try await session.data(for: request)
             try validate(response: response)
@@ -77,7 +95,13 @@ final class GitHubClient {
         var page = 1
         var comments: [PRComment] = []
         while true {
-            let url = URL(string: "https://api.github.com/repos/\(owner)/\(repo)/pulls/\(prNumber)/comments?per_page=100&page=\(page)")!
+            let url = try apiURL(
+                pathSegments: ["repos", owner, repo, "pulls", String(prNumber), "comments"],
+                queryItems: [
+                    URLQueryItem(name: "per_page", value: "100"),
+                    URLQueryItem(name: "page", value: String(page))
+                ]
+            )
             let request = try makeRequest(url: url)
             let (data, response) = try await session.data(for: request)
             try validate(response: response)
@@ -93,7 +117,13 @@ final class GitHubClient {
         var page = 1
         var comments: [PRComment] = []
         while true {
-            let url = URL(string: "https://api.github.com/repos/\(owner)/\(repo)/issues/\(prNumber)/comments?per_page=100&page=\(page)")!
+            let url = try apiURL(
+                pathSegments: ["repos", owner, repo, "issues", String(prNumber), "comments"],
+                queryItems: [
+                    URLQueryItem(name: "per_page", value: "100"),
+                    URLQueryItem(name: "page", value: String(page))
+                ]
+            )
             let request = try makeRequest(url: url)
             let (data, response) = try await session.data(for: request)
             try validate(response: response)
@@ -109,7 +139,13 @@ final class GitHubClient {
         var page = 1
         var comments: [PRComment] = []
         while true {
-            let url = URL(string: "https://api.github.com/repos/\(owner)/\(repo)/pulls/\(prNumber)/reviews?per_page=100&page=\(page)")!
+            let url = try apiURL(
+                pathSegments: ["repos", owner, repo, "pulls", String(prNumber), "reviews"],
+                queryItems: [
+                    URLQueryItem(name: "per_page", value: "100"),
+                    URLQueryItem(name: "page", value: String(page))
+                ]
+            )
             let request = try makeRequest(url: url)
             let (data, response) = try await session.data(for: request)
             try validate(response: response)
@@ -137,7 +173,7 @@ final class GitHubClient {
     }
 
     func fetchViewerLogin() async throws -> String {
-        let url = URL(string: "https://api.github.com/user")!
+        let url = try apiURL(pathSegments: ["user"])
         let request = try makeRequest(url: url)
         let (data, response) = try await session.data(for: request)
         try validate(response: response)
@@ -146,7 +182,15 @@ final class GitHubClient {
     }
 
     func fetchViewerRepos(page: Int) async throws -> [RepoDTO] {
-        let url = URL(string: "https://api.github.com/user/repos?per_page=100&page=\(page)&affiliation=owner,collaborator,organization_member&sort=updated")!
+        let url = try apiURL(
+            pathSegments: ["user", "repos"],
+            queryItems: [
+                URLQueryItem(name: "per_page", value: "100"),
+                URLQueryItem(name: "page", value: String(page)),
+                URLQueryItem(name: "affiliation", value: "owner,collaborator,organization_member"),
+                URLQueryItem(name: "sort", value: "updated")
+            ]
+        )
         let request = try makeRequest(url: url)
         let (data, response) = try await session.data(for: request)
         try validate(response: response)
@@ -176,6 +220,24 @@ final class GitHubClient {
         request.setValue("2022-11-28", forHTTPHeaderField: "X-GitHub-Api-Version")
         request.setValue("PRMonitor", forHTTPHeaderField: "User-Agent")
         return request
+    }
+
+    private func apiURL(pathSegments: [String], queryItems: [URLQueryItem] = []) throws -> URL {
+        let encodedSegments = pathSegments.compactMap {
+            $0.addingPercentEncoding(withAllowedCharacters: pathSegmentAllowedCharacters)
+        }
+        guard encodedSegments.count == pathSegments.count else {
+            throw GitHubClientError.invalidResponse
+        }
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = "api.github.com"
+        components.percentEncodedPath = "/" + encodedSegments.joined(separator: "/")
+        components.queryItems = queryItems.isEmpty ? nil : queryItems
+        guard let url = components.url else {
+            throw GitHubClientError.invalidResponse
+        }
+        return url
     }
 
     private func validate(response: URLResponse) throws {

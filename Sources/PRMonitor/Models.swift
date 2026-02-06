@@ -26,6 +26,7 @@ struct AgentConfig: Identifiable, Codable, Hashable {
 enum AgentRunStatus: String {
     case running
     case waitingForComment
+    case failed
     case done
     case notFound
 }

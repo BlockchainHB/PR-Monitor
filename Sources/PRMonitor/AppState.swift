@@ -8,6 +8,7 @@ final class AppState: ObservableObject {
         case needsAuth
         case idle
         case running
+        case failed
         case waiting
         case done
     }
@@ -58,6 +59,7 @@ final class AppState: ObservableObject {
         let agents = repoSections.flatMap { $0.prs.flatMap { $0.agents } }
         if agents.isEmpty { return .idle }
         if agents.contains(where: { $0.status == .running }) { return .running }
+        if agents.contains(where: { $0.status == .failed }) { return .failed }
         if agents.contains(where: { $0.status == .waitingForComment || $0.status == .notFound }) { return .waiting }
         return .done
     }
@@ -143,7 +145,9 @@ final class AppState: ObservableObject {
             for pr in section.prs {
                 let agents = pr.agents
                 guard !agents.isEmpty else { continue }
-                let allFinished = agents.allSatisfy { $0.status == .done || $0.status == .waitingForComment }
+                let allFinished = agents.allSatisfy {
+                    $0.status == .done || $0.status == .waitingForComment || $0.status == .failed
+                }
                 guard allFinished else { continue }
 
                 let token = reviewSummaryToken(for: pr)

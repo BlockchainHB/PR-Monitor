@@ -1,4 +1,4 @@
-// swift-tools-version: 5.7
+// swift-tools-version: 5.9
 import PackageDescription
 
 let package = Package(
@@ -11,6 +11,11 @@ let package = Package(
         .executableTarget(
             name: "PRMonitor",
             path: "Sources/PRMonitor"
+        ),
+        .testTarget(
+            name: "PRMonitorTests",
+            dependencies: ["PRMonitor"],
+            path: "Tests/PRMonitorTests"
         )
     ]
 )
