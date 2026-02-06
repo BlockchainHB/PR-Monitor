@@ -246,6 +246,7 @@ struct ContentView: View {
 
     private func prStatus(_ pr: PRItem) -> AgentRunStatus {
         if pr.agents.contains(where: { $0.status == .running }) { return .running }
+        if pr.agents.contains(where: { $0.status == .failed }) { return .failed }
         if pr.agents.contains(where: { $0.status == .waitingForComment || $0.status == .notFound }) { return .waitingForComment }
         return .done
     }
@@ -256,6 +257,8 @@ struct ContentView: View {
             return "Running"
         case .waitingForComment:
             return agent.commentCount > 0 ? "Needs review" : "Waiting"
+        case .failed:
+            return conclusionText(agent) ?? "Failed"
         case .done:
             return conclusionText(agent) ?? "Done"
         case .notFound:
@@ -409,7 +412,7 @@ struct ContentView: View {
     }
 
     private func conclusionText(_ agent: AgentRun) -> String? {
-        guard agent.status == .done else { return nil }
+        guard agent.status == .done || agent.status == .failed else { return nil }
         guard let conclusion = agent.checkConclusion, !conclusion.isEmpty else { return nil }
         return conclusion.replacingOccurrences(of: "_", with: " ").capitalized
     }
@@ -503,6 +506,8 @@ private struct StatusPill: View {
         switch status {
         case .running:
             return "Running"
+        case .failed:
+            return "Failed"
         case .waitingForComment:
             return "Waiting"
         case .done:
@@ -530,6 +535,7 @@ extension AgentRunStatus {
         case .running: return .blue
         case .waitingForComment: return .orange
         case .notFound: return .gray
+        case .failed: return .red
         case .done: return .green
         }
     }

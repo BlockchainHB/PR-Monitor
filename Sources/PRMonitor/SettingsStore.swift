@@ -45,9 +45,9 @@ final class SettingsStore: ObservableObject {
         guard !trimmed.isEmpty else { return nil }
         let parts = trimmed.split(separator: "/").map(String.init)
         guard parts.count == 2 else { return nil }
-        let owner = parts[0]
-        let name = parts[1]
-        guard !owner.isEmpty, !name.isEmpty else { return nil }
+        let owner = parts[0].trimmingCharacters(in: .whitespacesAndNewlines)
+        let name = parts[1].trimmingCharacters(in: .whitespacesAndNewlines)
+        guard isValidOwner(owner), isValidRepoName(name) else { return nil }
         let repo = RepoConfig(owner: owner, name: name, isEnabled: true)
         if !repos.contains(where: { $0.id == repo.id }) {
             repos.append(repo)
@@ -95,6 +95,16 @@ final class SettingsStore: ObservableObject {
         )
         guard let data = try? JSONEncoder().encode(payload) else { return }
         UserDefaults.standard.set(data, forKey: storageKey)
+    }
+
+    private func isValidOwner(_ owner: String) -> Bool {
+        guard !owner.isEmpty, owner.count <= 39 else { return false }
+        return owner.range(of: "^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$", options: .regularExpression) != nil
+    }
+
+    private func isValidRepoName(_ name: String) -> Bool {
+        guard !name.isEmpty else { return false }
+        return name.range(of: "^[A-Za-z0-9._-]+$", options: .regularExpression) != nil
     }
 }
 

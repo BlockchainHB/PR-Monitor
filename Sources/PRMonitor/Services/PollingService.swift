@@ -137,10 +137,23 @@ final class PollingService {
         if run.status != "completed" {
             return .running
         }
+        if isFailureConclusion(run.conclusion) {
+            return .failed
+        }
         if commentCount > 0 {
             return .waitingForComment
         }
         return .done
+    }
+
+    private func isFailureConclusion(_ conclusion: String?) -> Bool {
+        guard let conclusion, !conclusion.isEmpty else { return false }
+        switch conclusion.lowercased() {
+        case "success", "neutral", "skipped":
+            return false
+        default:
+            return true
+        }
     }
 
     private func commentCountForAgent(agent: AgentConfig, comments: [PRComment], since: Date?) -> Int {
