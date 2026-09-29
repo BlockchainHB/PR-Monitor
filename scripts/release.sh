@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Builds a signed, notarized, stapled PR Monitor release: dist/PRMonitor.dmg and dist/PRMonitor.zip.
 #
-#   scripts/release.sh 1.0.0
+#   scripts/release.sh 1.1.0              build, sign, notarize into dist/
+#   scripts/release.sh 1.1.0 --publish    …then tag v1.1.0 on origin/main and publish the GitHub release
 #
 # Environment:
 #   TEAM_ID          Apple Developer team (default: G2537ZRGNU)
@@ -13,8 +14,23 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
-VERSION="${1:?usage: scripts/release.sh <version>}"
+VERSION="${1:?usage: scripts/release.sh <version> [--publish]}"
 VERSION="${VERSION#v}"
+PUBLISH="${2:-}"
+if [[ -n "$PUBLISH" && "$PUBLISH" != "--publish" ]]; then
+  echo "error: unknown option $PUBLISH" >&2; exit 1
+fi
+if [[ "$PUBLISH" == "--publish" ]]; then
+  # Publish only what's on main, exactly as pushed, so the release matches the tagged source.
+  git fetch -q origin main --tags
+  if [[ -n "$(git status --porcelain)" || "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]]; then
+    echo "error: --publish needs a clean checkout of origin/main" >&2; exit 1
+  fi
+  if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+    echo "error: tag v$VERSION already exists" >&2; exit 1
+  fi
+  [[ "${SIGN_IDENTITY:-}" == "-" ]] && { echo "error: can't publish an ad-hoc build" >&2; exit 1; }
+fi
 TEAM_ID="${TEAM_ID:-G2537ZRGNU}"
 SIGN_IDENTITY="${SIGN_IDENTITY:-Developer ID Application}"
 BUILD_NUMBER="${BUILD_NUMBER:-$(git rev-list --count HEAD)}"
@@ -79,5 +95,13 @@ fi
 
 ditto -c -k --keepParent "$APP" "$DIST/PRMonitor.zip"
 
-step "Done"
+step "Checksums"
 ( cd "$DIST" && LC_ALL=C shasum -a 256 PRMonitor.dmg PRMonitor.zip | tee SHA256SUMS )
+
+if [[ "$PUBLISH" == "--publish" ]]; then
+  step "Publishing v$VERSION"
+  git tag -a "v$VERSION" -m "PR Monitor $VERSION"
+  git push -q origin "v$VERSION"
+  gh release create "v$VERSION" "$DIST/PRMonitor.dmg" "$DIST/PRMonitor.zip" "$DIST/SHA256SUMS" \
+    --title "PR Monitor $VERSION" --generate-notes --verify-tag --latest
+fi
