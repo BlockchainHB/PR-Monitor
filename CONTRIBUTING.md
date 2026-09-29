@@ -35,6 +35,11 @@ Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) before larger changes.
   - `PRMonitor --showcase hero-light` (also `hero-dark`, `settings-light`, `settings-dark`) puts the real UI, on real Liquid Glass, over a designed backdrop and prints the rectangle to capture with `screencapture -x -R<rect> out.png`. These are the README images.
   - `PRMonitor --snapshot <dir>` renders the panel, Settings panes and every menu bar icon state offscreen, for quick layout checks.
   - `PRMonitor --diagnose owner/repo` checks status derivation against live repositories, using your `gh` token.
+  - `PRMonitor --portfolio docs/screenshots/portfolio` renders portfolio images of the panel: transparent, exactly 2 px per point, cropped to the panel edge, in light and dark, plus a fully expanded variant. The folder is gitignored. For the matching 1024 px icon in its default style (regardless of the Mac's icon style setting), use Icon Composer's exporter:
+
+    ```bash
+    "/Applications/Xcode.app/Contents/Applications/Icon Composer.app/Contents/Executables/ictool" PRMonitorApp/AppIcon.icon --export-image --output-file docs/screenshots/portfolio/app-icon-1024.png --platform macOS --rendition Default --width 1024 --height 1024 --scale 1
+    ```
 
 ## Submitting changes
 

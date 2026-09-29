@@ -197,3 +197,143 @@ private struct MockMenuBar: View {
     }
 }
 #endif
+
+#if DEBUG
+/// `PRMonitor --portfolio <directory>` renders the menu bar panel for a portfolio site: transparent
+/// PNGs at exactly 2 px per point, cropped to the panel edge, with no shadow, in light and dark,
+/// with the first two pull requests expanded, plus a fully expanded variant. Uses fictional
+/// repositories. Debug builds only.
+enum PortfolioShots {
+    @MainActor
+    static func runIfRequested() {
+        let arguments = CommandLine.arguments
+        guard let index = arguments.firstIndex(of: "--portfolio"), arguments.indices.contains(index + 1) else { return }
+        let directory = URL(filePath: arguments[index + 1], directoryHint: .isDirectory)
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+
+        let (settings, account, monitor, router) = PreviewData.environment()
+        // Minute-granular "Updated 2 minutes ago" can't tick between the light and dark renders.
+        monitor.loadPreview(PortfolioData.pullRequests, updatedSecondsAgo: 150)
+        let primary = Set(PortfolioData.pullRequests.prefix(2).map(\.id))
+        let everything = Set(PortfolioData.pullRequests.map(\.id))
+
+        func panel(_ expanded: Set<String>) -> some View {
+            MenuBarPanel(initiallyExpanded: expanded)
+                .environment(monitor).environment(settings).environment(account).environment(router)
+                .background(PanelSurface())
+                .clipShape(.rect(cornerRadius: Metrics.panelCornerRadius, style: .continuous))
+        }
+
+        render(panel(primary), dark: false, to: directory.appending(path: "panel-light@2x.png"))
+        render(panel(primary), dark: true, to: directory.appending(path: "panel-dark@2x.png"))
+        render(panel(everything), dark: false, to: directory.appending(path: "panel-light-full@2x.png"))
+        // The icon comes from Icon Composer's exporter, which ignores the Mac's icon style setting:
+        //   ictool PRMonitorApp/AppIcon.icon --export-image --output-file app-icon-1024.png \
+        //     --platform macOS --rendition Default --width 1024 --height 1024 --scale 1
+        exit(0)
+    }
+
+    /// Renders at exactly 2 px per point into a transparent bitmap, independent of the screen.
+    @MainActor
+    private static func render(_ view: some View, dark: Bool, to url: URL) {
+        let appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
+        let host = NSHostingView(rootView: view.environment(\.colorScheme, dark ? .dark : .light))
+        host.appearance = appearance
+        host.frame = NSRect(origin: .zero, size: host.fittingSize)
+        let window = NSWindow(contentRect: host.frame, styleMask: [.borderless], backing: .buffered, defer: false)
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.appearance = appearance
+        window.contentView = host
+        // The list measures its own height after the first layout pass, so settle, re-measure and
+        // resize until the size stops changing before capturing.
+        var size = host.frame.size
+        for _ in 0..<5 {
+            host.layoutSubtreeIfNeeded()
+            RunLoop.main.run(until: .now.addingTimeInterval(0.25))
+            let fitted = host.fittingSize
+            if fitted == size { break }
+            size = fitted
+            window.setContentSize(size)
+            host.frame = NSRect(origin: .zero, size: size)
+        }
+
+        guard let rep = NSBitmapImageRep(
+            bitmapDataPlanes: nil, pixelsWide: Int(size.width * 2), pixelsHigh: Int(size.height * 2),
+            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+            colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0
+        ) else { return }
+        rep.size = size
+        host.cacheDisplay(in: host.bounds, to: rep)
+        try? rep.representation(using: .png, properties: [:])?.write(to: url)
+    }
+}
+
+/// The panel's own surface, standing in for the system's glass (which can't render offscreen):
+/// an opaque menu-like fill and the hairline rim macOS draws around menu bar panels. No shadow.
+private struct PanelSurface: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: Metrics.panelCornerRadius, style: .continuous)
+        shape
+            .fill(colorScheme == .dark ? Color(white: 0.16) : Color(white: 0.965))
+            .overlay(shape.strokeBorder(.primary.opacity(colorScheme == .dark ? 0.16 : 0.1), lineWidth: 0.5))
+    }
+}
+
+/// Portfolio fixture: two fictional repositories, three pull requests in three states.
+private enum PortfolioData {
+    static let now = Date.now
+
+    static let pullRequests: [PullRequest] = [
+        // Checkout: Vercel and Cursor Bugbot passed, Devin left review threads.
+        pr("PF_1", "lumen-labs/checkout-web", 214, "Add Apple Pay to the checkout flow", author: "maya", minutesAgo: 4,
+           checks: [
+               check("Vercel", source: .commitStatus(creator: "vercel")),
+               check("Cursor Bugbot", source: .checkRun(appName: "Cursor", appSlug: "cursor")),
+               check("Devin Review", source: .checkRun(appName: "Devin", appSlug: "devin-ai-integration")),
+           ],
+           threads: [thread("devin-ai-integration"), thread("devin-ai-integration")]),
+        // Checkout: still running.
+        pr("PF_2", "lumen-labs/checkout-web", 209, "Retry failed payment webhooks with backoff", author: "sam", minutesAgo: 11,
+           checks: [
+               check("Vercel", source: .commitStatus(creator: "vercel")),
+               check("build", source: .checkRun(appName: "GitHub Actions", appSlug: "github-actions")),
+               check("test", source: .checkRun(appName: "GitHub Actions", appSlug: "github-actions"), outcome: .pending),
+               check("Cursor Bugbot", source: .checkRun(appName: "Cursor", appSlug: "cursor"), outcome: .pending),
+           ]),
+        // Design system: everything green and approved.
+        pr("PF_3", "lumen-labs/design-system", 88, "Adopt Liquid Glass tokens for buttons", author: "jordan", minutesAgo: 38,
+           checks: [
+               check("CI", source: .checkRun(appName: "GitHub Actions", appSlug: "github-actions")),
+               check("Vercel", source: .commitStatus(creator: "vercel")),
+               check("Cursor Bugbot", source: .checkRun(appName: "Cursor", appSlug: "cursor")),
+           ],
+           decision: .approved),
+    ]
+
+    private static func pr(
+        _ id: String, _ repo: String, _ number: Int, _ title: String, author: String, minutesAgo: Double,
+        checks: [CheckSignal], threads: [ThreadSignal] = [], decision: ReviewDecision? = nil
+    ) -> PullRequest {
+        PullRequest(
+            id: id, repository: RepositoryID(parsing: repo)!, number: number, title: title,
+            url: URL(string: "https://github.com/\(repo)/pull/\(number)")!, author: author, isDraft: false,
+            createdAt: now.addingTimeInterval(-86_400), updatedAt: now.addingTimeInterval(-minutesAgo * 60),
+            headSHA: "head-\(id)", headCommittedAt: now.addingTimeInterval(-(minutesAgo + 20) * 60), rollupState: nil,
+            reviewDecision: decision, mergeable: .mergeable, checks: checks, requestedReviewers: [],
+            reviews: [], threads: threads, comments: []
+        )
+    }
+
+    private static func check(_ name: String, source: CheckSignal.Source, outcome: CheckSignal.Outcome = .succeeded) -> CheckSignal {
+        CheckSignal(name: name, source: source, outcome: outcome, rawState: outcome == .pending ? "IN_PROGRESS" : "SUCCESS",
+                    startedAt: now.addingTimeInterval(-600), completedAt: outcome == .pending ? nil : now.addingTimeInterval(-180), url: nil)
+    }
+
+    private static func thread(_ login: String) -> ThreadSignal {
+        ThreadSignal(author: login, isBot: true, isResolved: false, isOutdated: false, createdAt: now.addingTimeInterval(-120))
+    }
+}
+#endif
