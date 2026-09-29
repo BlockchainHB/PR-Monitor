@@ -2,63 +2,61 @@
 
 PR Monitor ships as a **Developer ID–signed, notarized** disk image on GitHub Releases. That's how Ice, Rectangle, Loop, Stats and AltTab distribute too. Since macOS 15, Gatekeeper no longer lets people right-click › Open an unsigned app, so notarization isn't optional for a download people can actually open.
 
-`scripts/release.sh` does everything: archive, export with Developer ID, notarize and staple the app, build an APFS disk image with an Applications shortcut, sign, notarize and staple the image, and write `dist/SHA256SUMS`. CI runs the same script when a tag is pushed.
+Releases are cut from your Mac with one command. `scripts/release.sh`:
+1. Archives the app, exports it with your Developer ID, notarizes and staples it.
+2. Builds an APFS disk image with an Applications shortcut, then signs, notarizes and staples the image.
+3. Writes `dist/SHA256SUMS`.
+4. With `--publish`, tags the release and publishes it on GitHub.
 
-## One-time setup
+## One-time setup (already done)
 
-### On your Mac
+- **The Developer ID Application certificate** is in your login keychain. Check with `security find-identity -v -p codesigning`.
+- **Notarization credentials** are stored under the keychain profile `PRMonitor`. To redo them, create an app-specific password at [account.apple.com](https://account.apple.com) › Sign-In and Security, then run:
 
-You need the **Developer ID Application** certificate in your login keychain (check with `security find-identity -v -p codesigning`). You also need notarization credentials, stored once in the keychain:
-
-1. Create an app-specific password at [account.apple.com](https://account.apple.com) › Sign-In and Security › App-Specific Passwords.
-2. Store the credentials under a profile name. The command prompts for the password:
-
-   ```bash
-   xcrun notarytool store-credentials PRMonitor --apple-id YOUR_APPLE_ID --team-id G2537ZRGNU
-   ```
-
-### In GitHub (for automated releases)
-
-Add these under **Settings › Secrets and variables › Actions**:
-
-| Secret | How to get it |
-| --- | --- |
-| `DEVELOPER_ID_P12_BASE64` | In Keychain Access, export the Developer ID Application certificate *with its private key* as a .p12, then `base64 -i cert.p12 \| pbcopy` |
-| `DEVELOPER_ID_P12_PASSWORD` | The password you set when exporting the .p12 |
-| `APPLE_TEAM_ID` | `G2537ZRGNU` |
-| `ASC_API_KEY_P8_BASE64` | App Store Connect › Users and Access › Integrations › Team Keys: create a key with the Developer role and download `AuthKey_XXXX.p8`, then `base64 -i AuthKey_XXXX.p8 \| pbcopy` |
-| `ASC_KEY_ID` | The key's ID, shown next to it |
-| `ASC_ISSUER_ID` | The Issuer ID at the top of the Team Keys page |
+  ```bash
+  xcrun notarytool store-credentials PRMonitor --apple-id h4saamb@icloud.com --team-id G2537ZRGNU
+  ```
 
 ## Cutting a release
 
-1. Make sure `main` is green and `swift test` passes.
-2. Tag and push:
+1. Merge everything for the release into `main`, then check out a clean, up-to-date `main`:
 
    ```bash
-   git tag v1.0.0 && git push origin v1.0.0
+   git checkout main && git pull
    ```
 
-   The **Release** workflow builds, signs, notarizes, and publishes the release with `PRMonitor.dmg`, `PRMonitor.zip`, and `SHA256SUMS`. The README's Download button always points at the latest `PRMonitor.dmg`.
-
-   To release from your Mac instead:
+2. Build, notarize, tag and publish in one step:
 
    ```bash
-   NOTARY_PROFILE=PRMonitor scripts/release.sh 1.0.0
-   gh release create v1.0.0 dist/PRMonitor.dmg dist/PRMonitor.zip dist/SHA256SUMS --generate-notes
+   NOTARY_PROFILE=PRMonitor scripts/release.sh 1.1.0 --publish
    ```
 
-3. Verify before announcing. Download the DMG from the release page so it's quarantined like a user's copy, then check:
+   It refuses to publish from a dirty or out-of-date checkout, or to reuse an existing tag, so the release always matches the tagged source. Without `--publish`, it only builds into `dist/`, so you can check the build first.
+
+3. Verify. Download the DMG from the release page so it's quarantined like a user's copy, then check it:
 
    ```bash
    spctl --assess --type open --context context:primary-signature -vv PRMonitor.dmg   # "Notarized Developer ID"
    ```
 
-   Then open it and make sure the app launches with no Gatekeeper warning.
+   Then open the DMG and make sure the app launches with no Gatekeeper warning. The README's Download button always points at the latest `PRMonitor.dmg`.
 
-**Versions:** `MARKETING_VERSION` comes from the tag (SemVer). `CFBundleVersion` is the commit count, so it always increases, which update checks rely on.
+**Versions:** `MARKETING_VERSION` comes from the version you pass (SemVer). `CFBundleVersion` is the commit count, so it always increases, which update checks rely on.
 
 **Testing the pipeline without signing:** `SIGN_IDENTITY=- scripts/release.sh 0.0.0-test` builds an ad-hoc DMG and skips notarization.
+
+## Optional: releasing from GitHub Actions
+
+`.github/workflows/release.yml` can do the same build on GitHub's machines, but it only runs when started by hand (Actions › Release › Run workflow), and only once these repository secrets exist. It isn't needed for local releases.
+
+| Secret | How to get it |
+| --- | --- |
+| `DEVELOPER_ID_P12_BASE64` | In Keychain Access, export the Developer ID Application certificate *with its private key* as a .p12, then `base64 -i cert.p12 \| gh secret set DEVELOPER_ID_P12_BASE64` |
+| `DEVELOPER_ID_P12_PASSWORD` | The password you set when exporting the .p12 |
+| `APPLE_TEAM_ID` | `G2537ZRGNU` |
+| `ASC_API_KEY_P8_BASE64` | App Store Connect › Users and Access › Integrations › Team Keys: create a key with the Developer role and download `AuthKey_XXXX.p8`, then base64-encode it |
+| `ASC_KEY_ID` | The key's ID, shown next to it |
+| `ASC_ISSUER_ID` | The Issuer ID at the top of the Team Keys page |
 
 ## Homebrew
 
@@ -85,4 +83,4 @@ If it's ever wanted, add an `APPSTORE` build configuration that enables the sand
 
 ## Next: automatic updates
 
-Add [Sparkle 2](https://sparkle-project.org): generate EdDSA keys, set `SUFeedURL` and `SUPublicEDKey` in `Info.plist`, and have the release workflow run `sign_update` and `generate_appcast`, attaching `appcast.xml` to the release. Until then, users update by downloading the new DMG, and a Developer ID signature keeps their keychain access working across versions.
+Add [Sparkle 2](https://sparkle-project.org): generate EdDSA keys, set `SUFeedURL` and `SUPublicEDKey` in `Info.plist`, and have `scripts/release.sh` run `sign_update` and `generate_appcast`, attaching `appcast.xml` to the release. Until then, users update by downloading the new DMG, and a Developer ID signature keeps their keychain access working across versions.
