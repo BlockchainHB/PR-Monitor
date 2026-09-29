@@ -1,11 +1,11 @@
-// swift-tools-version: 5.9
+// swift-tools-version: 6.2
 import PackageDescription
 
 let package = Package(
     name: "PRMonitor",
-    platforms: [.macOS(.v14)],
+    platforms: [.macOS(.v26)],
     products: [
-        .executable(name: "PRMonitor", targets: ["PRMonitor"])
+        .executable(name: "PRMonitor", targets: ["PRMonitor"]),
     ],
     targets: [
         .executableTarget(
@@ -16,6 +16,7 @@ let package = Package(
             name: "PRMonitorTests",
             dependencies: ["PRMonitor"],
             path: "Tests/PRMonitorTests"
-        )
-    ]
+        ),
+    ],
+    swiftLanguageModes: [.v6]
 )
