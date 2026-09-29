@@ -1,8 +1,22 @@
-.firecrawl
-.swiftpm
+# macOS
 .DS_Store
-DerivedData
-.firecrawl/
-.DS_Store
+
+# Xcode / SwiftPM build products
+build/
+.build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
 PRMonitor.xcodeproj/project.xcworkspace/
-PRMonitor.xcodeproj/xcuserdata/
+.swiftpm/
+
+# Release artifacts (attach to GitHub Releases instead)
+*.app.zip
+*.dmg
+
+# Local tooling
+.firecrawl/
+.superset/
+
+# Release output from scripts/release.sh
+dist/
