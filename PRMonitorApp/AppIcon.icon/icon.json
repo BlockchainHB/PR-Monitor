@@ -1,0 +1,80 @@
+{
+  "fill-specializations" : [
+    {
+      "value" : {
+        "automatic-gradient" : "extended-srgb:0.10000,0.62000,0.36000,1.00000"
+      }
+    },
+    {
+      "appearance" : "dark",
+      "value" : {
+        "automatic-gradient" : "extended-srgb:0.03000,0.20000,0.12000,1.00000"
+      }
+    }
+  ],
+  "groups" : [
+    {
+      "name" : "Attention dot",
+      "layers" : [
+        {
+          "glass" : true,
+          "image-name" : "AttentionDot.svg",
+          "name" : "Attention dot"
+        }
+      ],
+      "lighting" : "individual",
+      "shadow" : {
+        "kind" : "layer-color",
+        "opacity" : 0.5
+      },
+      "specular" : true,
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.1
+      }
+    },
+    {
+      "name" : "Nodes",
+      "layers" : [
+        {
+          "glass" : true,
+          "image-name" : "Nodes.svg",
+          "name" : "Nodes"
+        }
+      ],
+      "lighting" : "individual",
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.45
+      },
+      "specular" : true,
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.15
+      }
+    },
+    {
+      "name" : "Branches",
+      "layers" : [
+        {
+          "glass" : true,
+          "image-name" : "Branches.svg",
+          "name" : "Branches"
+        }
+      ],
+      "lighting" : "combined",
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.3
+      },
+      "specular" : true,
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.35
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "squares" : "shared"
+  }
+}
