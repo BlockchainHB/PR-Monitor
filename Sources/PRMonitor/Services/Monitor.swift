@@ -331,10 +331,10 @@ final class Monitor {
 #if DEBUG
 extension Monitor {
     /// Shows fixed data without polling, for previews and snapshots.
-    func loadPreview(_ items: [PullRequest]) {
+    func loadPreview(_ items: [PullRequest], updatedSecondsAgo: TimeInterval = 45) {
         pullRequests = Dictionary(grouping: items, by: \.repository).mapValues { ($0, $0.count) }
         rebuild()
-        lastUpdated = .now.addingTimeInterval(-45)
+        lastUpdated = .now.addingTimeInterval(-updatedSecondsAgo)
     }
 }
 #endif

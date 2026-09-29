@@ -20,3 +20,6 @@ PRMonitor.xcodeproj/project.xcworkspace/
 
 # Release output from scripts/release.sh
 dist/
+
+# Portfolio images: regenerate with `PRMonitor --portfolio` (see CONTRIBUTING.md)
+docs/screenshots/portfolio/

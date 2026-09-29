@@ -11,6 +11,7 @@ struct PRMonitorApp: App {
         #if DEBUG
         Diagnostics.runIfRequested()
         Snapshots.runIfRequested()
+        PortfolioShots.runIfRequested()
         #endif
         let settings = AppSettings()
         let account = Account()
